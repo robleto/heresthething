@@ -1,0 +1,69 @@
+---
+// src/components/Footer.astro
+---
+
+<footer class="footer w-full bg-gray-800 text-gray-400 flex justify-between items-center px-4 py-2">
+
+  <!-- Footer Left -->
+    <p class="footer-left text-sm">Illustrations and Design by<!-- --> 
+      <a href="https://www.robleto.com/" target="_blank" rel="noopener noreferrer">Greg Robleto</a>
+    </p>
+
+  <!-- Footer Right -->
+  <div class="footer-right flex items-center space-x-4">
+    <div class="social-icons flex space-x-2">
+      <!-- Website -->
+      <a href="https://www.robleto.com" target="_blank" rel="noopener noreferrer">
+        <img src="/_icons/website-icon.svg" alt="Website" class="w-6 h-6">
+      </a>
+      <!-- Codepen -->
+      <a href="https://www.codepen.com/robleto" target="_blank" rel="noopener noreferrer">
+        <img src="/_icons/codepen-icon.svg" alt="CodePen" class="w-6 h-6">
+      </a>
+      <!-- Dribbble -->
+      <a href="https://www.dribbble.com/robleto" target="_blank" rel="noopener noreferrer">
+        <img src="/_icons/dribbble-icon.svg" alt="Dribbble" class="w-6 h-6">
+      </a>
+      <!-- Github -->
+      <a href="https://www.github.com/robleto" target="_blank" rel="noopener noreferrer">
+        <img src="/_icons/github-icon.svg" alt="GitHub" class="w-6 h-6">
+      </a>
+      <!-- LinkedIn -->
+      <a href="https://www.linkedin.com/in/robleto" target="_blank" rel="noopener noreferrer">
+        <img src="/_icons/linkedin-icon.svg" alt="LinkedIn" class="w-6 h-6">
+      </a>
+    </div>
+  </div>
+</footer>
+
+<style is:global>
+.footer {
+  background-color: rgba(8, 7, 5, 0.95);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100vw;
+  padding: 0.75rem 1.5rem;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  font-size: 13px;
+  z-index: 100; /* Ensure the footer is above other elements */
+}
+.footer .text-sm,
+.footer a {
+  opacity: 0.7;
+}
+
+@media (max-width: 640px) {
+  .footer {
+    flex-direction: column;
+  }
+  .footer .flex {
+    flex-direction: column;
+    align-items: center;
+  }
+  .footer .flex.social-icons {
+    margin-top: .25rem;
+    flex-direction: row;
+  }
+}
+</style>

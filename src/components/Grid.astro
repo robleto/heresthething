@@ -1,16 +1,12 @@
 ---
 import { fetchNotionData } from "../utils/notion";
 const data = await fetchNotionData();
-import "../styles/grid.css";
 ---
 
-<div class="grid">
+<div class="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-2 w-[90vw] max-w-[800px] mx-auto">
   {data.map((item) => (
-    <div class="card" data-key={item.id}>
-      <img src={`/img/${item.slug}.png`} alt={item.title} />
+    <div class="card flex items-center justify-center aspect-square rounded-xl overflow-hidden cursor-pointer bg-gray-300" data-key={item.id}>
+      <img class="w-full h-full object-cover" src={`/img/${item.slug}.png`} alt={item.slug} />
     </div>
   ))}
 </div>
-
-<!-- Load External Script -->
-<script src="/scripts/grid.js" defer></script>

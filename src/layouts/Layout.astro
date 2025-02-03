@@ -1,30 +1,39 @@
 ---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css'; // Import Tailwind CSS
+
+interface Props {
+  title: string;
+}
+
 const { title } = Astro.props;
 ---
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{title}</title>
-  
-  <!-- Global Styles -->
-  <link rel="stylesheet" href="/src/styles/global.css">
-</head>
-<body>
-  <header>
-    <h1>Practically Perfect Life</h1>
-  </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="Astro description" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-  <main>
-    <slot />  <!-- Content will be inserted here -->
-  </main>
+    <link rel="stylesheet" href="/styles/global.css" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+  </head>
+  <body>
 
-  <footer>
-    <p>© 2025 Practically Perfect Life</p>
-  </footer>
+    <div class="flex flex-col w-full h-full">
+      <Header />
 
-<script src="/scripts/grid.js" defer></script>
-</body>
+      <main class="flex flex-col flex-1 min-h-screen bg-gray-200 py-5">
+        <slot />
+      </main>
+
+      <Footer />
+    </div>
+
+    <script src="/scripts/grid.js" defer></script>
+  </body>
 </html>
