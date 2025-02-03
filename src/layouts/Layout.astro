@@ -1,22 +1,30 @@
-<!doctype html>
-<html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
-	</head>
-	<body>
-		<slot />
-	</body>
-</html>
+---
+const { title } = Astro.props;
+---
 
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
-</style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title}</title>
+  
+  <!-- Global Styles -->
+  <link rel="stylesheet" href="/src/styles/global.css">
+</head>
+<body>
+  <header>
+    <h1>Practically Perfect Life</h1>
+  </header>
+
+  <main>
+    <slot />  <!-- Content will be inserted here -->
+  </main>
+
+  <footer>
+    <p>© 2025 Practically Perfect Life</p>
+  </footer>
+
+<script src="/scripts/grid.js" defer></script>
+</body>
+</html>

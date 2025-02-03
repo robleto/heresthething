@@ -1,0 +1,16 @@
+---
+import { fetchNotionData } from "../utils/notion";
+const data = await fetchNotionData();
+import "../styles/grid.css";
+---
+
+<div class="grid">
+  {data.map((item) => (
+    <div class="card" data-key={item.id}>
+      <img src={`/img/${item.slug}.png`} alt={item.title} />
+    </div>
+  ))}
+</div>
+
+<!-- Load External Script -->
+<script src="/scripts/grid.js" defer></script>
