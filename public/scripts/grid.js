@@ -1,9 +1,11 @@
-/* public/scripts/grid.js */
 document.addEventListener("DOMContentLoaded", () => {
 	const gridContainer = document.querySelector(".grid");
 	let expandedCard = null;
 
 	if (!gridContainer) return;
+
+	// Shuffle cards before rendering them
+	shuffleCards();
 
 	// Event Delegation for Clicks (Performance Optimization)
 	gridContainer.addEventListener("click", (event) => {
@@ -11,13 +13,23 @@ document.addEventListener("DOMContentLoaded", () => {
 		if (card) expandCard(card);
 	});
 
+	function shuffleCards() {
+		const cards = Array.from(gridContainer.children);
+		const shuffledCards = cards
+			.map((card) => ({ card, sort: Math.random() }))
+			.sort((a, b) => a.sort - b.sort)
+			.map(({ card }) => card);
+
+		gridContainer.innerHTML = "";
+		shuffledCards.forEach((card) => gridContainer.appendChild(card));
+	}
+
 	function expandCard(card) {
 		const cards = Array.from(gridContainer.children);
 		const cardIndex = cards.indexOf(card);
 		const numCols = Math.floor(
 			gridContainer.clientWidth / card.clientWidth
 		);
-		const rowStart = Math.floor(cardIndex / numCols) * numCols;
 
 		if (expandedCard === card) {
 			resetGrid();
