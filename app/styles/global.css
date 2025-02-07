@@ -1,0 +1,48 @@
+@tailwind base;
+
+/* Ensure expanded last-column items move left instead of jumping down */
+.last-column[data-expanded="true"] {
+  transform: translateX(-100%);
+}
+
+/* Smooth transition */
+.card {
+  transition: transform 0.3s ease-in-out;
+}
+
+@tailwind components;
+@tailwind utilities;
+
+
+
+
+/* Footer styles */
+.footer {
+  background-color: rgba(8, 7, 5, 0.95);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100vw;
+  padding: 0.75rem 1.5rem;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  font-size: 13px;
+  z-index: 100; /* Ensure the footer is above other elements */
+}
+.footer .text-sm,
+.footer a {
+  opacity: 0.7;
+}
+
+@media (max-width: 640px) {
+  .footer {
+    flex-direction: column;
+  }
+  .footer .flex {
+    flex-direction: column;
+    align-items: center;
+  }
+  .footer .flex.social-icons {
+    margin-top: 0.25rem;
+    flex-direction: row;
+  }
+}
