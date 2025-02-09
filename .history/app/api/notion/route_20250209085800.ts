@@ -17,7 +17,7 @@ export async function GET() {
 
 		const allResults = [];
 		let hasMore = true;
-		let startCursor: string | undefined = undefined;
+		let startCursor = undefined;
 
 		// 🔹 Fetch all pages with cursor-based pagination
 		while (hasMore) {
@@ -30,7 +30,7 @@ export async function GET() {
 
 			// Check for more pages
 			hasMore = !!response.next_cursor;
-			startCursor = response.next_cursor ?? undefined;
+			startCursor = response.next_cursor;
 		}
 
 		// 🔹 Process data correctly

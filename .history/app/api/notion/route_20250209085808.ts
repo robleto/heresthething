@@ -30,7 +30,7 @@ export async function GET() {
 
 			// Check for more pages
 			hasMore = !!response.next_cursor;
-			startCursor = response.next_cursor ?? undefined;
+			startCursor = response.next_cursor;
 		}
 
 		// 🔹 Process data correctly
