@@ -15,26 +15,20 @@ export async function GET() {
 			);
 		}
 
-		const allResults = [];
-		let hasMore = true;
-		let startCursor: string | undefined = undefined;
+		// Fetch from Notion API
+		console.log("🔹 Fetching from Notion API...");
+		const response = await notion.databases.query({
+			database_id: databaseId,
+		});
 
-		// 🔹 Fetch all pages with cursor-based pagination
-		while (hasMore) {
-			const response = await notion.databases.query({
-				database_id: databaseId,
-				start_cursor: startCursor,
-			});
+		// Log full response for debugging
+		console.log(
+			"🔹 Raw Notion API Response:",
+			JSON.stringify(response, null, 2)
+		);
 
-			allResults.push(...response.results);
-
-			// Check for more pages
-			hasMore = !!response.next_cursor;
-			startCursor = response.next_cursor ?? undefined;
-		}
-
-		// 🔹 Process data correctly
-		const pages = allResults
+		// Process the data correctly
+		const pages = response.results
 			.filter((page) => "properties" in page)
 			.map((page) => {
 				const title =
@@ -58,13 +52,13 @@ export async function GET() {
 				return { id: page.id, title, slug };
 			});
 
-		// 🔹 Log formatted data
+		// Log formatted data
 		console.log(
 			"✅ Formatted Notion Data:",
 			JSON.stringify(pages, null, 2)
 		);
 
-		// ✅ Return JSON response
+		// Return JSON response
 		return NextResponse.json(pages);
 	} catch (error) {
 		console.error("🚨 Notion API fetch error:", error);

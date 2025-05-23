@@ -12,10 +12,14 @@ pnpm-debug.log*
 
 # environment variables
 .env
+.env.local
+.env*
 .env.production
 
 # macOS-specific files
 .DS_Store
-
+.history/
+.next/
+.vscode/
 # jetbrains setting folder
 .idea/
