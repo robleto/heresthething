@@ -121,22 +121,33 @@ export default function Grid() {
 		>
 			{cards.map((item, index) => {
 				const isLastColumn = (index + 1) % columns === 0;
-
-				console.log(
-					`Item: ${item.slug} | Index: ${index} | Last Column: ${isLastColumn}`
-				); // ✅ Debugging
-
+				const isExpanded = expandedCard === item.id;
+				
+				// Calculate explicit grid positioning for last-column expanded cards
+				let gridStyle = {};
+				let className = "card relative flex items-center justify-center aspect-square rounded-xl overflow-hidden cursor-pointer bg-gray-300 transition-all";
+				
+				if (isExpanded) {
+					if (isLastColumn) {
+						// For last column cards, position them at the start of the next row
+						const currentRow = Math.floor(index / columns) + 1; // Convert to 1-indexed
+						const nextRow = currentRow + 1;
+						gridStyle = {
+							gridColumn: '1 / span 2', // Start at column 1, span 2 columns
+							gridRow: `${nextRow} / span 2`, // Start at next row, span 2 rows
+						};
+					} else {
+						// For non-last column cards, just expand in place
+						className += " col-span-2 row-span-2";
+					}
+				}
+				
 				return (
 					<div
 						key={item.id}
 						data-key={item.id}
-						className={`card relative flex items-center justify-center aspect-square rounded-xl overflow-hidden cursor-pointer bg-gray-300 transition-all ${
-							expandedCard === item.id
-								? `col-span-2 row-span-2 ${
-										isLastColumn ? "-translate-x-full" : ""
-								  }`
-								: ""
-						}`}
+						style={gridStyle}
+						className={className}
 						onClick={() => expandCard(item.id)}
 					>
 						<Image
