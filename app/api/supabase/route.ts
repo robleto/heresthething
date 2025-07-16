@@ -13,7 +13,6 @@ export async function GET() {
         'running-toilet': 'running–toilet', 
         'saving-today': 'saving–today',
         'say-thier-name': 'say-their-name',
-        'better-questions': 'better questions',
         'car-not-investment': 'car-not -investment',
         'one-instrument': 'one instrument', 
         'run-late': 'run late',
