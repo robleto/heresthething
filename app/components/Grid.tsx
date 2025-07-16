@@ -34,7 +34,7 @@ export default function Grid() {
 					const notionRes = await fetch("/api/notion");
 					const notionData = await notionRes.json();
 					// Transform Notion data to match expected format
-					data = notionData.map((item: any) => ({
+					data = notionData.map((item: Card) => ({
 						...item,
 						imageUrl: `/img/${item.slug}.png`
 					}));
