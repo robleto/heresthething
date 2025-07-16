@@ -1,16 +1,35 @@
 import { Client } from "@notionhq/client";
-import { supabaseAdmin } from "../lib/supabase";
+import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 import { createReadStream } from 'fs';
+import * as dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // Initialize Notion Client
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
+
+// Initialize Supabase Admin Client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+console.log('🔍 Debug Environment Variables:');
+console.log('SUPABASE_URL:', supabaseUrl ? 'Set' : 'Missing');
+console.log('SERVICE_KEY:', supabaseServiceKey ? 'Set (length: ' + supabaseServiceKey.length + ')' : 'Missing');
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error('Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+}
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 interface NotionAdviceItem {
   id: string;
   title: string;
   slug: string;
+  imageUrl?: string;
 }
 
 interface SupabaseAdviceItem {
@@ -24,6 +43,20 @@ interface SupabaseAdviceItem {
 export async function syncNotionToSupabase() {
   try {
     console.log('🔄 Starting Notion to Supabase sync...');
+    
+    // Test Supabase connection first
+    console.log('🔌 Testing Supabase connection...');
+    const { data: testData, error: testError } = await supabaseAdmin
+      .from('advice_items')
+      .select('id')
+      .limit(1);
+
+    if (testError) {
+      console.error('❌ Supabase connection failed:', testError);
+      throw testError;
+    } else {
+      console.log('✅ Supabase connection successful');
+    }
     
     // 1. Fetch data from Notion
     const notionData = await fetchFromNotion();
@@ -54,35 +87,95 @@ async function fetchFromNotion(): Promise<NotionAdviceItem[]> {
     throw new Error("Notion Database ID is missing");
   }
 
-  const response = await notion.databases.query({
-    database_id: databaseId,
-  });
+  console.log('🔍 Fetching all pages from Notion with pagination...');
+  let allResults: any[] = [];
+  let hasMore = true;
+  let startCursor: string | undefined;
 
-  return response.results
+  while (hasMore) {
+    const queryParams: any = {
+      database_id: databaseId,
+      page_size: 100, // Maximum allowed by Notion API
+    };
+
+    if (startCursor) {
+      queryParams.start_cursor = startCursor;
+    }
+
+    const response = await notion.databases.query(queryParams);
+    
+    allResults = allResults.concat(response.results);
+    hasMore = response.has_more;
+    startCursor = response.next_cursor || undefined;
+
+    console.log(`📄 Fetched ${response.results.length} items (Total so far: ${allResults.length})`);
+  }
+
+  console.log(`✅ Total items fetched from Notion: ${allResults.length}`);
+
+  return allResults
     .filter((page) => "properties" in page)
-    .map((page) => {
-      // Extract title from "Advice Text" field
+    .map((page, index) => {
+      // Debug: Log first few items to understand the data structure
+      if (index < 3) {
+        console.log(`🔍 Debug page ${index}:`, JSON.stringify(page.properties, null, 2));
+      }
+
+      // Extract title from "Advice Text" field (the actual advice content)
       const title =
-        page.properties["Advice Text"]?.type === "title" &&
-        Array.isArray(page.properties["Advice Text"].title) &&
-        page.properties["Advice Text"].title.length > 0
-          ? page.properties["Advice Text"].title[0].plain_text
+        page.properties["Advice Text"]?.type === "rich_text" &&
+        Array.isArray(page.properties["Advice Text"].rich_text) &&
+        page.properties["Advice Text"].rich_text.length > 0
+          ? page.properties["Advice Text"].rich_text[0].plain_text
           : "Untitled";
 
-      // Extract slug
-      let slug = "default";
-      if (page.properties.slug?.type === "rich_text" &&
-          Array.isArray(page.properties.slug.rich_text) &&
-          page.properties.slug.rich_text.length > 0) {
-        slug = page.properties.slug.rich_text[0].plain_text || "default";
+      // Extract slug from "slug" field (which is actually the title field in Notion)
+      let slug = "untitled";
+      if (page.properties.slug?.type === "title" &&
+          Array.isArray(page.properties.slug.title) &&
+          page.properties.slug.title.length > 0) {
+        slug = page.properties.slug.title[0].plain_text || "untitled";
+      }
+
+      // Extract image URL from Image field
+      let imageUrl = "";
+      if (page.properties.Image?.type === "files" &&
+          Array.isArray(page.properties.Image.files) &&
+          page.properties.Image.files.length > 0) {
+        const imageFile = page.properties.Image.files[0];
+        if (imageFile.type === "file" && imageFile.file) {
+          imageUrl = imageFile.file.url;
+        } else if (imageFile.type === "external" && imageFile.external) {
+          imageUrl = imageFile.external.url;
+        }
       }
 
       return {
         id: page.id,
         title,
-        slug
+        slug,
+        imageUrl
       };
     });
+}
+
+// Helper function to generate URL-friendly slug from title
+function generateSlugFromTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single
+    .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
+    .substring(0, 50) // Limit length
+    || 'untitled'; // Fallback if empty
+}
+
+// Helper function to ensure unique slugs
+function generateUniqueSlug(baseSlug: string, notionId: string): string {
+  // Use part of the Notion ID to make it unique
+  const idSuffix = notionId.replace(/-/g, '').substring(0, 8);
+  return `${baseSlug}-${idSuffix}`;
 }
 
 async function processAdviceItem(item: NotionAdviceItem) {
@@ -98,6 +191,7 @@ async function processAdviceItem(item: NotionAdviceItem) {
     notion_id: item.id,
     title: item.title,
     slug: item.slug,
+    image_url: item.imageUrl || `/img/${item.slug}.png`, // Use Notion image or fallback to local
   };
 
   // 3. Check if local image exists and upload to Supabase Storage
@@ -108,10 +202,9 @@ async function processAdviceItem(item: NotionAdviceItem) {
       // Upload image to Supabase Storage
       const optimizedImageUrl = await uploadImageToSupabase(item.slug, localImagePath);
       supabaseItem.optimized_image_url = optimizedImageUrl;
-      supabaseItem.image_url = `/img/${item.slug}.png`; // Keep original reference
+      // Keep both: Notion URL as primary, local as backup
     } catch (error) {
       console.warn(`⚠️  Failed to upload image for ${item.slug}:`, error);
-      supabaseItem.image_url = `/img/${item.slug}.png`; // Fallback to local
     }
   }
 

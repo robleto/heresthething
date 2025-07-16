@@ -5,6 +5,26 @@ export async function GET() {
   try {
     console.log("🔹 Fetching from Supabase...");
     
+    // Function to fix filename mismatches between database slugs and actual image files
+    const fixImagePath = (slug: string): string => {
+      // Handle specific filename mismatches
+      const filenameFixes: { [key: string]: string } = {
+        'personal-brand': 'personal–board',
+        'running-toilet': 'running–toilet', 
+        'saving-today': 'saving–today',
+        'say-thier-name': 'say-their-name',
+        'better-questions': 'better questions',
+        'car-not-investment': 'car-not -investment',
+        'one-instrument': 'one instrument', 
+        'run-late': 'run late',
+        'signature-app': 'signature–app',
+        'spontaneity-credit-cards': 'spontaneity–credit–cards'
+      };
+      
+      const correctedSlug = filenameFixes[slug] || slug;
+      return `/img/${correctedSlug}.png`;
+    };
+    
     // Fetch active advice items from Supabase
     const { data: adviceItems, error } = await supabase
       .from('advice_items')
@@ -25,8 +45,8 @@ export async function GET() {
       id: item.id,
       title: item.title,
       slug: item.slug,
-      // Use optimized image URL if available, fallback to original
-      imageUrl: item.optimized_image_url || item.image_url || `/img/${item.slug}.png`
+      // Use the filename fix function to handle mismatched image names
+      imageUrl: fixImagePath(item.slug)
     }));
 
     console.log(`✅ Fetched ${formattedData.length} items from Supabase`);
