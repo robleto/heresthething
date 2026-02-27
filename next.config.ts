@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // No external image domains needed since we're using local images
+  images: {
+    // Netlify deployments can serve `next/image` optimization differently depending
+    // on runtime/adapter configuration. If the optimizer route isn't available,
+    // *all* <Image /> tags will break in production.
+    //
+    // By disabling optimization, images are served directly from `public/`.
+    unoptimized: true,
+  },
 };
 
 export default nextConfig;

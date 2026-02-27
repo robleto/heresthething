@@ -20,24 +20,31 @@ export default function Grid() {
 	const [columns, setColumns] = useState(2); // Default to mobile (Tailwind sm:grid-cols-2)
 	const gridRef = useRef<HTMLDivElement>(null);
 
-	// ✅ Fetch data from Supabase API route
+	// ✅ Fetch data from local manifest (with Notion fallback)
 	useEffect(() => {
 		async function fetchData() {
 			try {
-				// Try Supabase first, fallback to Notion if needed
-				const res = await fetch("/api/supabase");
-				let data = await res.json();
+				let data: Card[] = [];
 
-				// If Supabase fails, fallback to Notion
-				if (!res.ok) {
-					console.warn("Supabase API failed, falling back to Notion");
+				// Primary source: local manifest generated from /public/img
+				const localRes = await fetch("/data/local-cards.json", { cache: "no-store" });
+				if (localRes.ok) {
+					data = await localRes.json();
+				} else {
+					console.warn("Local manifest fetch failed, falling back to Notion", {
+						status: localRes.status,
+					});
+
 					const notionRes = await fetch("/api/notion");
-					const notionData = await notionRes.json();
-					// Transform Notion data to match expected format
-					data = notionData.map((item: Card) => ({
-						...item,
-						imageUrl: `/img/${item.slug}.png`
-					}));
+					if (notionRes.ok) {
+						const notionData = await notionRes.json();
+						data = notionData.map((item: Card) => ({
+							...item,
+							imageUrl: `/img/${item.slug}.png`,
+						}));
+					} else {
+						console.error("Notion fallback fetch failed", { status: notionRes.status });
+					}
 				}
 
 				// 🔀 Shuffle the cards array
@@ -159,7 +166,7 @@ export default function Grid() {
 							priority={index < 6}
 							onError={(e) => {
 								console.error(`Failed to load image: ${item.imageUrl}`);
-								// Fallback to local image if Supabase image fails
+								// Fallback to local image path if current source fails
 								const target = e.target as HTMLImageElement;
 								if (!target.src.includes('/img/')) {
 									target.src = `/img/${item.slug}.png`;
