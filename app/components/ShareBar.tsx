@@ -51,8 +51,16 @@ function DownloadIcon() {
 export default function ShareBar({ slug, title, visible }: ShareBarProps) {
 	const [copied, setCopied] = useState(false);
 
-	function getPageUrl() {
-		return typeof window !== "undefined" ? window.location.href : "";
+	function getCardPath() {
+		return `/card/${slug}`;
+	}
+
+	function getCardUrl() {
+		if (typeof window !== "undefined") {
+			return `${window.location.origin}${getCardPath()}`;
+		}
+
+		return getCardPath();
 	}
 
 	const shareText =
@@ -66,7 +74,7 @@ export default function ShareBar({ slug, title, visible }: ShareBarProps) {
 	async function handleCopy(e: React.MouseEvent) {
 		e.stopPropagation();
 		try {
-			await navigator.clipboard.writeText(getPageUrl());
+			await navigator.clipboard.writeText(getCardUrl());
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);
 		} catch {
@@ -77,7 +85,7 @@ export default function ShareBar({ slug, title, visible }: ShareBarProps) {
 	function handlePinterest(e: React.MouseEvent) {
 		e.stopPropagation();
 		const imageUrl = `${window.location.origin}/img/${slug}.png`;
-		const url = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(getPageUrl())}&media=${encodeURIComponent(imageUrl)}&description=${encodeURIComponent(shareText)}`;
+		const url = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(getCardUrl())}&media=${encodeURIComponent(imageUrl)}&description=${encodeURIComponent(shareText)}`;
 		window.open(url, "_blank", "noopener,noreferrer");
 	}
 
