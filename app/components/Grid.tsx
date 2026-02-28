@@ -22,19 +22,27 @@ export default function Grid() {
 	const [columns, setColumns] = useState(2); // Default to mobile (Tailwind sm:grid-cols-2)
 	const gridRef = useRef<HTMLDivElement>(null);
 
-	// ✅ Fetch data from local manifest (with Notion fallback)
+	function getImageBySlug(slug: string) {
+		const r2Base = process.env.NEXT_PUBLIC_R2_IMAGE_BASE_URL;
+		if (r2Base) {
+			return `${r2Base.replace(/\/$/, "")}/${slug}.png`;
+		}
+
+		return `/img/${slug}.png`;
+	}
+
+	// ✅ Fetch data from cards API (R2/local with Notion fallback)
 	useEffect(() => {
 		async function fetchData() {
 			try {
 				let data: Card[] = [];
 
-				// Primary source: local manifest generated from /public/img
-				const localRes = await fetch("/data/local-cards.json", { cache: "no-store" });
-				if (localRes.ok) {
-					data = await localRes.json();
+				const cardsRes = await fetch("/api/cards", { cache: "no-store" });
+				if (cardsRes.ok) {
+					data = await cardsRes.json();
 				} else {
-					console.warn("Local manifest fetch failed, falling back to Notion", {
-						status: localRes.status,
+					console.warn("Cards API fetch failed, falling back to Notion", {
+						status: cardsRes.status,
 					});
 
 					const notionRes = await fetch("/api/notion");
@@ -42,7 +50,7 @@ export default function Grid() {
 						const notionData = await notionRes.json();
 						data = notionData.map((item: Card) => ({
 							...item,
-							imageUrl: `/img/${item.slug}.png`,
+							imageUrl: getImageBySlug(item.slug),
 						}));
 					} else {
 						console.error("Notion fallback fetch failed", { status: notionRes.status });
@@ -70,8 +78,6 @@ export default function Grid() {
 			else if (width >= 1024) newColumns = 4; // lg:grid-cols-4
 			else if (width >= 768) newColumns = 4; // md:grid-cols-4
 			else if (width >= 640) newColumns = 3; // sm:grid-cols-3
-
-			console.log(`Detected Columns: ${newColumns}`); // ✅ Debugging
 
 			setColumns(newColumns);
 		}
@@ -183,7 +189,7 @@ export default function Grid() {
 								// Fallback to local image path if current source fails
 								const target = e.target as HTMLImageElement;
 								if (!target.src.includes('/img/')) {
-									target.src = `/img/${item.slug}.png`;
+									target.src = getImageBySlug(item.slug);
 								}
 							}}
 						/>
