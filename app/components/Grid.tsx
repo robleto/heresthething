@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
+import ShareBar from "./ShareBar";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -17,6 +18,7 @@ interface Card {
 export default function Grid() {
 	const [cards, setCards] = useState<Card[]>([]);
 	const [expandedCard, setExpandedCard] = useState<string | null>(null);
+	const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 	const [columns, setColumns] = useState(2); // Default to mobile (Tailwind sm:grid-cols-2)
 	const gridRef = useRef<HTMLDivElement>(null);
 
@@ -150,15 +152,24 @@ export default function Grid() {
 				}
 				
 				return (
-					<button
+					<div
 						key={item.id}
-						type="button"
+						role="button"
+						tabIndex={0}
 						data-key={item.id}
 						style={gridStyle}
 						className={className}
 						aria-label={item.title || `Card for ${item.slug}`}
 						aria-pressed={isExpanded}
 						onClick={() => expandCard(item.id)}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" || e.key === " ") {
+								e.preventDefault();
+								expandCard(item.id);
+							}
+						}}
+						onMouseEnter={() => setHoveredCard(item.id)}
+						onMouseLeave={() => setHoveredCard(null)}
 					>
 						<Image
 							className="w-full h-full object-cover"
@@ -176,7 +187,14 @@ export default function Grid() {
 								}
 							}}
 						/>
-					</button>
+					{isExpanded && (
+						<ShareBar
+							slug={item.slug}
+							title={item.title}
+							visible={hoveredCard === item.id}
+						/>
+					)}
+					</div>
 				);
 			})}
 		</div>
