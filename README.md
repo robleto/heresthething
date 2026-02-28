@@ -5,6 +5,7 @@ A Next.js application showcasing life advice with a modern, optimized architectu
 ## Architecture
 
 - **Frontend**: Next.js 15.4.1 with Turbopack
+- **Build**: Next.js App Router (`app/`)
 - **Images**: Local files in `/public/img/`
 - **Primary Data Source**: Local manifest in `/public/data/local-cards.json`
 - **Optional Fallback**: Notion API via `/api/notion`
@@ -34,13 +35,37 @@ npm install
 
 # Start development server
 npm run dev
+
+# Run lint
+npm run lint
+
+# Run production build (regenerates local-cards.json)
+npm run build
+
+# Start production server (auto-uses first open port in 3000-3010)
+npm run start
 ```
 
-Open [http://localhost:3001](http://localhost:3001) to view the application.
+`npm run dev` and `npm run start` automatically try the first available port in `3000-3010`.
+
+Open the local URL printed in your terminal to view the application.
 
 ## API Endpoints
 
-- `GET /api/notion` - Optional fallback endpoint for direct Notion API access
+- `GET /api/notion` - Optional Notion fallback endpoint (cached + revalidated every 5 minutes)
+
+## Runtime Data Flow
+
+1. Grid loads cards from `/data/local-cards.json`
+2. If local fetch fails, Grid falls back to `/api/notion`
+3. Notion response is normalized into `{ id, title, slug }` and mapped to local image paths
+
+## Scripts
+
+- `npm run dev` - start local development server (auto-tries ports 3000-3010)
+- `npm run lint` - run ESLint checks
+- `npm run build` - regenerate local card manifest and build for production
+- `npm run start` - run built app (auto-tries ports 3000-3010)
 
 ## Deployment
 
@@ -67,5 +92,13 @@ Open [http://localhost:3001](http://localhost:3001) to view the application.
 - **Generated manifest**: `/public/data/local-cards.json`
 - **Build step**: `node scripts/generate-local-cards.js`
 - **Optional external source**: Notion via `/api/notion`
+
+## Release Checklist
+
+1. Run `npm run lint`
+2. Run `npm run build`
+3. Verify homepage renders cards from local manifest
+4. If using Notion fallback, verify `NOTION_API_KEY` and `NOTION_DATABASE_ID` in deployment env
+5. Deploy
 
 Built with Next.js and deployed on Vercel.

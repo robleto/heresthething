@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "node scripts/run-next-with-port.mjs dev",
     "build": "node scripts/generate-local-cards.js && next build",
-    "start": "next start",
+    "start": "node scripts/run-next-with-port.mjs start",
     "lint": "next lint"
   },
   "dependencies": {

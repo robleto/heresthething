@@ -150,11 +150,14 @@ export default function Grid() {
 				}
 				
 				return (
-					<div
+					<button
 						key={item.id}
+						type="button"
 						data-key={item.id}
 						style={gridStyle}
 						className={className}
+						aria-label={item.title || `Card for ${item.slug}`}
+						aria-pressed={isExpanded}
 						onClick={() => expandCard(item.id)}
 					>
 						<Image
@@ -173,7 +176,7 @@ export default function Grid() {
 								}
 							}}
 						/>
-					</div>
+					</button>
 				);
 			})}
 		</div>
