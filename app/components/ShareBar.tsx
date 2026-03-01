@@ -124,25 +124,35 @@ export default function ShareBar({ slug, title, imageUrl, visible }: ShareBarPro
 	function handlePinterest(e: React.MouseEvent) {
 		e.stopPropagation();
 		const url = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(getCardUrl())}&media=${encodeURIComponent(imageUrl)}&description=${encodeURIComponent(shareText)}`;
-		window.open(url, "_blank", "noopener,noreferrer");
+		openShareUrl(url);
 	}
 
 	function handleThreads(e: React.MouseEvent) {
 		e.stopPropagation();
 		const url = `https://www.threads.net/intent/post?text=${encodeURIComponent(`${shareText} ${getCardUrl()}`)}`;
-		window.open(url, "_blank", "noopener,noreferrer");
+		openShareUrl(url);
 	}
 
 	function handleX(e: React.MouseEvent) {
 		e.stopPropagation();
-		const url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(getCardUrl())}&text=${encodeURIComponent(shareText)}`;
-		window.open(url, "_blank", "noopener,noreferrer");
+		const text = `${shareText} ${getCardUrl()}`;
+		const url = `https://x.com/intent/post?text=${encodeURIComponent(text)}`;
+		openShareUrl(url);
 	}
 
 	function handleBluesky(e: React.MouseEvent) {
 		e.stopPropagation();
-		const url = `https://bsky.app/intent/compose?text=${encodeURIComponent(`${shareText} ${getCardUrl()}`)}`;
-		window.open(url, "_blank", "noopener,noreferrer");
+		const text = `${shareText} ${getCardUrl()}`;
+		const url = `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`;
+		openShareUrl(url);
+	}
+
+	function openShareUrl(url: string) {
+		const shareWindow = window.open(url, "_blank", "noopener,noreferrer");
+
+		if (!shareWindow) {
+			window.location.assign(url);
+		}
 	}
 
 	function handleDownload(e: React.MouseEvent) {
