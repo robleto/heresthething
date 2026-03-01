@@ -163,7 +163,8 @@ export default function ShareBar({ slug, title, imageUrl, visible }: ShareBarPro
 
 	function handleX(e: React.MouseEvent) {
 		e.stopPropagation();
-		const url = `https://x.com/compose/post?text=${encodeURIComponent(getFreshShareCardUrl())}`;
+		const text = `Here's the Thing: ${shareText}`;
+		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(getFreshShareCardUrl())}`;
 		openShareUrl(url);
 	}
 
