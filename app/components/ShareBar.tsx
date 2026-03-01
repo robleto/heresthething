@@ -163,8 +163,7 @@ export default function ShareBar({ slug, title, imageUrl, visible }: ShareBarPro
 
 	function handleX(e: React.MouseEvent) {
 		e.stopPropagation();
-		const text = `Here's the Thing: ${shareText}`;
-		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(getFreshShareCardUrl())}`;
+		const url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(getFreshShareCardUrl())}`;
 		openShareUrl(url);
 	}
 
@@ -178,8 +177,8 @@ export default function ShareBar({ slug, title, imageUrl, visible }: ShareBarPro
 	function openShareUrl(url: string) {
 		const shareWindow = window.open(url, "_blank", "noopener,noreferrer");
 
-		if (!shareWindow) {
-			window.location.assign(url);
+		if (shareWindow) {
+			shareWindow.focus();
 		}
 	}
 
