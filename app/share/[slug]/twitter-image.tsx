@@ -65,10 +65,11 @@ export default async function TwitterImage({ params }: { params: Promise<{ slug:
 					height: "100%",
 					display: "flex",
 					position: "relative",
-					background: "#111827",
+					overflow: "hidden",
+					background: "#e5e7eb",
 					alignItems: "center",
 					justifyContent: "center",
-					padding: "24px",
+					padding: "28px",
 				}}
 			>
 				<img
@@ -80,7 +81,16 @@ export default async function TwitterImage({ params }: { params: Promise<{ slug:
 						width: "100%",
 						height: "100%",
 						objectFit: "cover",
-						opacity: 0.1,
+						filter: "blur(30px) saturate(110%) brightness(110%)",
+						opacity: 0.9,
+						transform: "scale(1.08)",
+					}}
+				/>
+				<div
+					style={{
+						position: "absolute",
+						inset: 0,
+						background: "rgba(255,255,255,0.1)",
 					}}
 				/>
 				<img
@@ -89,10 +99,11 @@ export default async function TwitterImage({ params }: { params: Promise<{ slug:
 					style={{
 						position: "relative",
 						zIndex: 1,
-						width: "100%",
-						height: "100%",
+						width: "574px",
+						height: "574px",
 						objectFit: "contain",
 						borderRadius: "16px",
+						boxShadow: "0 12px 30px rgba(0,0,0,0.15)",
 					}}
 				/>
 			</div>

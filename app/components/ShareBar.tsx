@@ -164,20 +164,21 @@ export default function ShareBar({ slug, title, imageUrl, quoteText, visible }: 
 
 	function handleThreads(e: React.MouseEvent) {
 		e.stopPropagation();
-		const url = `https://www.threads.net/intent/post?text=${encodeURIComponent(`${shareText} ${getCardUrl()}`)}`;
+		const text = `${shareText}\n\n${getFreshShareCardUrl()}`;
+		const url = `https://www.threads.net/intent/post?text=${encodeURIComponent(text)}`;
 		openShareUrl(url);
 	}
 
 	function handleX(e: React.MouseEvent) {
 		e.stopPropagation();
-		const text = `Here's the Thing: ${shareText}`;
+		const text = shareText;
 		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(getFreshShareCardUrl())}`;
 		openShareUrl(url);
 	}
 
 	function handleBluesky(e: React.MouseEvent) {
 		e.stopPropagation();
-		const text = `${shareText}\n${getFreshShareCardUrl()}`;
+		const text = `${shareText}\n\n${getFreshShareCardUrl()}`;
 		const url = `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`;
 		openShareUrl(url);
 	}

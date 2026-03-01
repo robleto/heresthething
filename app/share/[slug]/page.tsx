@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
+import ShareRedirect from "./ShareRedirect";
 import { getCardBySlug, getCards } from "../../../lib/cards";
 
 interface SharePageProps {
@@ -30,6 +31,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: SharePageProps): Promise<Metadata> {
+	const imageVersion = "v3";
 	const { slug } = await params;
 	const card = await getCardBySlug(slug);
 
@@ -47,7 +49,7 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
 	const description = `${title} — from Here's the Thing.`;
 	const sharePath = `/share/${card.slug}`;
 	const cardPath = `/card/${card.slug}`;
-	const imagePath = `/share/${card.slug}/twitter-image`;
+	const imagePath = `/share/${card.slug}/twitter-image?${imageVersion}`;
 
 	return {
 		title,
@@ -90,6 +92,7 @@ export default async function SharePage({ params }: SharePageProps) {
 
 	return (
 		<div className="flex flex-col min-h-screen">
+			<ShareRedirect />
 			<Header />
 			<main className="flex flex-col items-center justify-center min-h-screen px-6 py-10 bg-gray-200 gap-6">
 				<div className="w-full max-w-xl aspect-square relative rounded-xl overflow-hidden shadow-sm bg-gray-300">
