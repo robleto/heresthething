@@ -65,7 +65,7 @@ export default async function TwitterImage({ params }: { params: Promise<{ slug:
 					height: "100%",
 					display: "flex",
 					position: "relative",
-					background: "#0f172a",
+					background: "#111827",
 					alignItems: "center",
 					justifyContent: "center",
 					padding: "24px",
@@ -73,8 +73,22 @@ export default async function TwitterImage({ params }: { params: Promise<{ slug:
 			>
 				<img
 					src={card.imageUrl}
+					alt=""
+					style={{
+						position: "absolute",
+						inset: 0,
+						width: "100%",
+						height: "100%",
+						objectFit: "cover",
+						opacity: 0.1,
+					}}
+				/>
+				<img
+					src={card.imageUrl}
 					alt={title}
 					style={{
+						position: "relative",
+						zIndex: 1,
 						width: "100%",
 						height: "100%",
 						objectFit: "contain",
