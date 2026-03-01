@@ -9,6 +9,24 @@ interface ShareBarProps {
 	visible: boolean;
 }
 
+function humanizeSlug(value: string) {
+	return value
+		.split(/[-_]+/)
+		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+		.join(" ");
+}
+
+function formatShareTitle(title: string, slug: string) {
+	const preferred = title && title !== "Untitled" ? title : slug;
+	const looksLikeSlug = /^[a-z0-9]+(?:[-_][a-z0-9]+)+$/i.test(preferred);
+
+	if (looksLikeSlug) {
+		return humanizeSlug(preferred);
+	}
+
+	return preferred;
+}
+
 // ── Minimal inline SVGs ──────────────────────────────────────────────────────
 
 function XIcon() {
@@ -113,8 +131,7 @@ export default function ShareBar({ slug, title, imageUrl, visible }: ShareBarPro
 		return sharePath;
 	}
 
-	const shareText =
-		title && title !== "Untitled" ? title : "Here's the Thing";
+	const shareText = formatShareTitle(title, slug) || "Here's the Thing";
 
 	// Prevent card-expand click from firing when interacting with share buttons
 	function stop(e: React.MouseEvent) {
@@ -146,7 +163,7 @@ export default function ShareBar({ slug, title, imageUrl, visible }: ShareBarPro
 
 	function handleX(e: React.MouseEvent) {
 		e.stopPropagation();
-		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(getFreshShareCardUrl())}`;
+		const url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(getFreshShareCardUrl())}`;
 		openShareUrl(url);
 	}
 

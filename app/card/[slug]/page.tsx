@@ -11,11 +11,17 @@ interface CardPageProps {
 }
 
 function formatCardTitle(title: string, slug: string) {
-	if (title && title !== "Untitled") return title;
-	return slug
-		.split("-")
-		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-		.join(" ");
+	const preferred = title && title !== "Untitled" ? title : slug;
+	const looksLikeSlug = /^[a-z0-9]+(?:[-_][a-z0-9]+)+$/i.test(preferred);
+
+	if (looksLikeSlug) {
+		return preferred
+			.split(/[-_]+/)
+			.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+			.join(" ");
+	}
+
+	return preferred;
 }
 
 export async function generateStaticParams() {

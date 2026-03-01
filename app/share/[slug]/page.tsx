@@ -11,11 +11,17 @@ interface SharePageProps {
 }
 
 function formatCardTitle(title: string, slug: string) {
-	if (title && title !== "Untitled") return title;
-	return slug
-		.split("-")
-		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-		.join(" ");
+	const preferred = title && title !== "Untitled" ? title : slug;
+	const looksLikeSlug = /^[a-z0-9]+(?:[-_][a-z0-9]+)+$/i.test(preferred);
+
+	if (looksLikeSlug) {
+		return preferred
+			.split(/[-_]+/)
+			.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+			.join(" ");
+	}
+
+	return preferred;
 }
 
 export async function generateStaticParams() {
@@ -41,7 +47,7 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
 	const description = `${title} — from Here's the Thing.`;
 	const sharePath = `/share/${card.slug}`;
 	const cardPath = `/card/${card.slug}`;
-	const imagePath = card.imageUrl;
+	const imagePath = `/share/${card.slug}/twitter-image`;
 
 	return {
 		title,
@@ -58,7 +64,7 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
 				{
 					url: imagePath,
 					width: 1200,
-					height: 1200,
+					height: 630,
 					alt: title,
 				},
 			],
