@@ -103,7 +103,14 @@ export default function ShareBar({ slug, title, imageUrl, visible }: ShareBarPro
 	}
 
 	function getFreshShareCardUrl() {
-		return `${getCardUrl()}?src=share`;
+		const origin = getCanonicalOrigin();
+		const sharePath = `/share/${slug}`;
+
+		if (origin) {
+			return `${origin}${sharePath}`;
+		}
+
+		return sharePath;
 	}
 
 	const shareText =
