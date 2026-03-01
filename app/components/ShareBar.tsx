@@ -102,6 +102,10 @@ export default function ShareBar({ slug, title, imageUrl, visible }: ShareBarPro
 		return getCardPath();
 	}
 
+	function getFreshShareCardUrl() {
+		return `${getCardUrl()}?src=share`;
+	}
+
 	const shareText =
 		title && title !== "Untitled" ? title : "Here's the Thing";
 
@@ -135,13 +139,13 @@ export default function ShareBar({ slug, title, imageUrl, visible }: ShareBarPro
 
 	function handleX(e: React.MouseEvent) {
 		e.stopPropagation();
-		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(getCardUrl())}`;
+		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(getFreshShareCardUrl())}`;
 		openShareUrl(url);
 	}
 
 	function handleBluesky(e: React.MouseEvent) {
 		e.stopPropagation();
-		const text = `${shareText}\n${getCardUrl()}`;
+		const text = `${shareText}\n${getFreshShareCardUrl()}`;
 		const url = `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`;
 		openShareUrl(url);
 	}
