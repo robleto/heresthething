@@ -34,11 +34,23 @@ function sanitizeTitle(value: unknown, slug: string): string {
 }
 
 function normalizeImageUrl(slug: string, rawImageUrl: unknown): string {
+	const base = process.env.R2_IMAGE_BASE_URL || process.env.NEXT_PUBLIC_R2_IMAGE_BASE_URL;
+
 	if (typeof rawImageUrl === "string" && rawImageUrl.trim()) {
-		return rawImageUrl.trim();
+		const trimmed = rawImageUrl.trim();
+		const isAbsolute = /^https?:\/\//i.test(trimmed);
+
+		if (isAbsolute) {
+			return trimmed;
+		}
+
+		if (base) {
+			return `${base.replace(/\/$/, "")}/${slug}.png`;
+		}
+
+		return trimmed;
 	}
 
-	const base = process.env.R2_IMAGE_BASE_URL || process.env.NEXT_PUBLIC_R2_IMAGE_BASE_URL;
 	if (base) {
 		return `${base.replace(/\/$/, "")}/${slug}.png`;
 	}
