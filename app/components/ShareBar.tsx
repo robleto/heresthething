@@ -80,9 +80,23 @@ export default function ShareBar({ slug, title, imageUrl, visible }: ShareBarPro
 		return `/card/${slug}`;
 	}
 
-	function getCardUrl() {
+	function getCanonicalOrigin() {
+		const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+		if (fromEnv) {
+			return fromEnv.replace(/\/$/, "");
+		}
+
 		if (typeof window !== "undefined") {
-			return `${window.location.origin}${getCardPath()}`;
+			return window.location.origin;
+		}
+
+		return "";
+	}
+
+	function getCardUrl() {
+		const origin = getCanonicalOrigin();
+		if (origin) {
+			return `${origin}${getCardPath()}`;
 		}
 
 		return getCardPath();
