@@ -197,6 +197,7 @@ export default function Grid() {
 						<ShareBar
 							slug={item.slug}
 							title={item.title}
+							imageUrl={item.imageUrl}
 							visible={hoveredCard === item.id}
 						/>
 					)}

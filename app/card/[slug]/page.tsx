@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
-import { getCardBySlug, getLocalCards } from "../../../lib/cards";
+import { getCardBySlug, getCards } from "../../../lib/cards";
 
 interface CardPageProps {
 	params: Promise<{ slug: string }>;
@@ -19,7 +19,7 @@ function formatCardTitle(title: string, slug: string) {
 }
 
 export async function generateStaticParams() {
-	const cards = await getLocalCards();
+	const cards = await getCards();
 	return cards.map((card) => ({ slug: card.slug }));
 }
 
@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: CardPageProps): Promise<Metad
 	const title = formatCardTitle(card.title, card.slug);
 	const description = `${title} — from Here's the Thing.`;
 	const cardPath = `/card/${card.slug}`;
-	const imagePath = `/img/${card.slug}.png`;
+	const imagePath = card.imageUrl;
 
 	return {
 		title,
@@ -87,7 +87,7 @@ export default async function CardPage({ params }: CardPageProps) {
 			<main className="flex flex-col items-center justify-center min-h-screen px-6 py-10 bg-gray-200 gap-6">
 				<div className="w-full max-w-xl aspect-square relative rounded-xl overflow-hidden shadow-sm bg-gray-300">
 					<Image
-						src={`/img/${card.slug}.png`}
+						src={card.imageUrl}
 						alt={title}
 						fill
 						priority

@@ -5,6 +5,7 @@ import { useState } from "react";
 interface ShareBarProps {
 	slug: string;
 	title: string;
+	imageUrl: string;
 	visible: boolean;
 }
 
@@ -72,7 +73,7 @@ function DownloadIcon() {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export default function ShareBar({ slug, title, visible }: ShareBarProps) {
+export default function ShareBar({ slug, title, imageUrl, visible }: ShareBarProps) {
 	const [copied, setCopied] = useState(false);
 
 	function getCardPath() {
@@ -108,7 +109,6 @@ export default function ShareBar({ slug, title, visible }: ShareBarProps) {
 
 	function handlePinterest(e: React.MouseEvent) {
 		e.stopPropagation();
-		const imageUrl = `${window.location.origin}/img/${slug}.png`;
 		const url = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(getCardUrl())}&media=${encodeURIComponent(imageUrl)}&description=${encodeURIComponent(shareText)}`;
 		window.open(url, "_blank", "noopener,noreferrer");
 	}
@@ -134,7 +134,7 @@ export default function ShareBar({ slug, title, visible }: ShareBarProps) {
 	function handleDownload(e: React.MouseEvent) {
 		e.stopPropagation();
 		const link = document.createElement("a");
-		link.href = `/img/${slug}.png`;
+		link.href = imageUrl;
 		link.download = `${slug}.png`;
 		document.body.appendChild(link);
 		link.click();
