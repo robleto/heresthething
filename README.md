@@ -48,6 +48,9 @@ npm run lint
 # Run production build (regenerates local-cards.json)
 npm run build
 
+# (Optional) Extract quote text from images to public/data/card-text.json
+npm run extract:text
+
 # Start production server (auto-uses first open port in 3000-3010)
 npm run start
 ```
@@ -121,6 +124,7 @@ If `R2_MANIFEST_URL` is configured, it should return an array like:
 
 - **Source of truth**: local files in `/public/img`
 - **Generated manifest**: `/public/data/local-cards.json`
+- **Optional OCR text map**: `/public/data/card-text.json`
 - **Build step**: `node scripts/generate-local-cards.js`
 - **Preferred external source**: `R2_MANIFEST_URL`
 - **Optional external fallback**: Notion via `/api/notion`
@@ -133,5 +137,22 @@ If `R2_MANIFEST_URL` is configured, it should return an array like:
 4. If using Notion fallback, verify `NOTION_API_KEY` and `NOTION_DATABASE_ID` in deployment env
 5. If using R2, verify `R2_MANIFEST_URL` and `R2_IMAGE_BASE_URL`
 6. Deploy
+
+## OCR Text Extraction
+
+You can extract quote text from image cards and include it in share payloads.
+
+```bash
+# Run OCR only for cards not already present in card-text.json
+npm run extract:text
+
+# Reprocess all cards
+npm run extract:text -- --all
+
+# Process first N cards (useful for quick tests)
+npm run extract:text -- --limit=20
+```
+
+The generated file `/public/data/card-text.json` is merged into `/public/data/local-cards.json` during build as `quoteText`.
 
 Built with Next.js and deployed on Vercel.

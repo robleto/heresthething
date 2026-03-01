@@ -6,6 +6,7 @@ export interface AdviceCard {
 	slug: string;
 	title: string;
 	imageUrl: string;
+	quoteText?: string;
 }
 
 const MANIFEST_TIMEOUT_MS = 6000;
@@ -58,29 +59,38 @@ function normalizeImageUrl(slug: string, rawImageUrl: unknown): string {
 	return `/img/${slug}.png`;
 }
 
+function sanitizeQuoteText(value: unknown): string | undefined {
+	if (typeof value !== "string") return undefined;
+	const normalized = value.replace(/\s+/g, " ").trim();
+	return normalized || undefined;
+}
+
 function normalizeCards(raw: unknown): AdviceCard[] {
 	if (!Array.isArray(raw)) return [];
 
-	return raw
-		.map((item, index) => {
-			if (!item || typeof item !== "object") return null;
+	const cards: AdviceCard[] = [];
 
-			const record = item as Record<string, unknown>;
-			const slug = sanitizeSlug(record.slug);
-			if (!slug) return null;
+	raw.forEach((item, index) => {
+		if (!item || typeof item !== "object") return;
 
-			const id = typeof record.id === "string" && record.id.trim()
-				? record.id.trim()
-				: `${slug}-${index}`;
+		const record = item as Record<string, unknown>;
+		const slug = sanitizeSlug(record.slug);
+		if (!slug) return;
 
-			return {
-				id,
-				slug,
-				title: sanitizeTitle(record.title, slug),
-				imageUrl: normalizeImageUrl(slug, record.imageUrl),
-			};
-		})
-		.filter((item): item is AdviceCard => Boolean(item));
+		const id = typeof record.id === "string" && record.id.trim()
+			? record.id.trim()
+			: `${slug}-${index}`;
+
+		cards.push({
+			id,
+			slug,
+			title: sanitizeTitle(record.title, slug),
+			imageUrl: normalizeImageUrl(slug, record.imageUrl),
+			quoteText: sanitizeQuoteText(record.quoteText),
+		});
+	});
+
+	return cards;
 }
 
 async function fetchR2Cards(): Promise<AdviceCard[]> {

@@ -13,6 +13,7 @@ interface Card {
 	slug: string;
 	title: string;
 	imageUrl: string;
+	quoteText?: string;
 }
 
 export default function Grid() {
@@ -198,6 +199,7 @@ export default function Grid() {
 							slug={item.slug}
 							title={item.title}
 							imageUrl={item.imageUrl}
+							quoteText={item.quoteText}
 							visible={hoveredCard === item.id}
 						/>
 					)}

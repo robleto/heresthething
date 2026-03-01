@@ -6,6 +6,7 @@ interface ShareBarProps {
 	slug: string;
 	title: string;
 	imageUrl: string;
+	quoteText?: string;
 	visible: boolean;
 }
 
@@ -91,7 +92,12 @@ function DownloadIcon() {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export default function ShareBar({ slug, title, imageUrl, visible }: ShareBarProps) {
+function normalizeShareBody(value?: string) {
+	if (!value) return "";
+	return value.replace(/\s+/g, " ").trim();
+}
+
+export default function ShareBar({ slug, title, imageUrl, quoteText, visible }: ShareBarProps) {
 	const [copied, setCopied] = useState(false);
 
 	function getCardPath() {
@@ -131,7 +137,8 @@ export default function ShareBar({ slug, title, imageUrl, visible }: ShareBarPro
 		return sharePath;
 	}
 
-	const shareText = formatShareTitle(title, slug) || "Here's the Thing";
+	const shareText =
+		normalizeShareBody(quoteText) || formatShareTitle(title, slug) || "Here's the Thing";
 
 	// Prevent card-expand click from firing when interacting with share buttons
 	function stop(e: React.MouseEvent) {
