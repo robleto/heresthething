@@ -135,14 +135,13 @@ export default function ShareBar({ slug, title, imageUrl, visible }: ShareBarPro
 
 	function handleX(e: React.MouseEvent) {
 		e.stopPropagation();
-		const text = `${shareText} ${getCardUrl()}`;
-		const url = `https://x.com/intent/post?text=${encodeURIComponent(text)}`;
+		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(getCardUrl())}`;
 		openShareUrl(url);
 	}
 
 	function handleBluesky(e: React.MouseEvent) {
 		e.stopPropagation();
-		const text = `${shareText} ${getCardUrl()}`;
+		const text = `${shareText}\n${getCardUrl()}`;
 		const url = `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`;
 		openShareUrl(url);
 	}
