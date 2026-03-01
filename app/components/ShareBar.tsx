@@ -97,6 +97,13 @@ function normalizeShareBody(value?: string) {
 	return value.replace(/\s+/g, " ").trim();
 }
 
+function stripIntroPrefix(value: string) {
+	return value
+		.replace(/^here'?s the thing\.{0,3}\s*/i, "")
+		.replace(/^[-:–—]+\s*/, "")
+		.trim();
+}
+
 export default function ShareBar({ slug, title, imageUrl, quoteText, visible }: ShareBarProps) {
 	const [copied, setCopied] = useState(false);
 
@@ -137,8 +144,31 @@ export default function ShareBar({ slug, title, imageUrl, quoteText, visible }: 
 		return sharePath;
 	}
 
-	const shareText =
-		normalizeShareBody(quoteText) || formatShareTitle(title, slug) || "Here's the Thing";
+	function getShareDomain() {
+		const shareUrl = getFreshShareCardUrl();
+		if (/^https?:\/\//i.test(shareUrl)) {
+			try {
+				return new URL(shareUrl).host;
+			} catch {
+				return shareUrl;
+			}
+		}
+
+		const origin = getCanonicalOrigin();
+		if (!origin) return shareUrl;
+
+		try {
+			return new URL(origin).host;
+		} catch {
+			return shareUrl;
+		}
+	}
+
+	const bodyCopyRaw =
+		normalizeShareBody(quoteText) || normalizeShareBody(formatShareTitle(title, slug)) || "";
+	const bodyCopy = stripIntroPrefix(bodyCopyRaw) || formatShareTitle(title, slug);
+	const xShareText = `Here's the thing...\n${bodyCopy}\n${getShareDomain()}`;
+	const socialShareText = `Here's the thing...\n${bodyCopy}\n${getFreshShareCardUrl()}`;
 
 	// Prevent card-expand click from firing when interacting with share buttons
 	function stop(e: React.MouseEvent) {
@@ -158,28 +188,25 @@ export default function ShareBar({ slug, title, imageUrl, quoteText, visible }: 
 
 	function handlePinterest(e: React.MouseEvent) {
 		e.stopPropagation();
-		const url = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(getCardUrl())}&media=${encodeURIComponent(imageUrl)}&description=${encodeURIComponent(shareText)}`;
+		const url = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(getCardUrl())}&media=${encodeURIComponent(imageUrl)}&description=${encodeURIComponent(socialShareText)}`;
 		openShareUrl(url);
 	}
 
 	function handleThreads(e: React.MouseEvent) {
 		e.stopPropagation();
-		const text = `${shareText}\n\n${getFreshShareCardUrl()}`;
-		const url = `https://www.threads.net/intent/post?text=${encodeURIComponent(text)}`;
+		const url = `https://www.threads.net/intent/post?text=${encodeURIComponent(socialShareText)}`;
 		openShareUrl(url);
 	}
 
 	function handleX(e: React.MouseEvent) {
 		e.stopPropagation();
-		const text = shareText;
-		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(getFreshShareCardUrl())}`;
+		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(xShareText)}&url=${encodeURIComponent(getFreshShareCardUrl())}`;
 		openShareUrl(url);
 	}
 
 	function handleBluesky(e: React.MouseEvent) {
 		e.stopPropagation();
-		const text = `${shareText}\n\n${getFreshShareCardUrl()}`;
-		const url = `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`;
+		const url = `https://bsky.app/intent/compose?text=${encodeURIComponent(socialShareText)}`;
 		openShareUrl(url);
 	}
 

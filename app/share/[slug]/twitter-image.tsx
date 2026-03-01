@@ -28,6 +28,18 @@ function formatCardTitle(title: string, slug: string) {
 	return preferred;
 }
 
+function hexToRgba90(hex?: string) {
+	if (!hex) return "rgba(229,231,235,0.9)";
+	const normalized = hex.trim().toLowerCase();
+	if (!/^#[0-9a-f]{6}$/.test(normalized)) return "rgba(229,231,235,0.9)";
+
+	const r = parseInt(normalized.slice(1, 3), 16);
+	const g = parseInt(normalized.slice(3, 5), 16);
+	const b = parseInt(normalized.slice(5, 7), 16);
+
+	return `rgba(${r},${g},${b},0.9)`;
+}
+
 export default async function TwitterImage({ params }: { params: Promise<{ slug: string }> }) {
 	const { slug } = await params;
 	const card = await getCardBySlug(slug);
@@ -56,6 +68,7 @@ export default async function TwitterImage({ params }: { params: Promise<{ slug:
 	}
 
 	const title = formatCardTitle(card.title, card.slug);
+	const backgroundFill = hexToRgba90(card.backgroundColor);
 
 	return new ImageResponse(
 		(
@@ -66,31 +79,17 @@ export default async function TwitterImage({ params }: { params: Promise<{ slug:
 					display: "flex",
 					position: "relative",
 					overflow: "hidden",
-					background: "#e5e7eb",
+					background: "#ffffff",
 					alignItems: "center",
 					justifyContent: "center",
 					padding: "28px",
 				}}
 			>
-				<img
-					src={card.imageUrl}
-					alt=""
-					style={{
-						position: "absolute",
-						inset: 0,
-						width: "100%",
-						height: "100%",
-						objectFit: "cover",
-						filter: "blur(30px) saturate(110%) brightness(110%)",
-						opacity: 0.9,
-						transform: "scale(1.08)",
-					}}
-				/>
 				<div
 					style={{
 						position: "absolute",
 						inset: 0,
-						background: "rgba(255,255,255,0.1)",
+						background: backgroundFill,
 					}}
 				/>
 				<img
