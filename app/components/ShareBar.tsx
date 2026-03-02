@@ -118,6 +118,7 @@ async function loadQuoteMap(): Promise<Record<string, string>> {
 
 	quoteMapPromise = (async () => {
 		const candidates = [
+			"/api/notion",
 			"/data/card-text.json",
 			"https://raw.githubusercontent.com/robleto/heresthething/main/public/data/card-text.json",
 		];
@@ -127,16 +128,28 @@ async function loadQuoteMap(): Promise<Record<string, string>> {
 				const response = await fetch(url, { cache: "no-store" });
 				if (!response.ok) continue;
 
-				const map = (await response.json()) as Record<string, unknown>;
-				if (!map || typeof map !== "object" || Array.isArray(map)) continue;
+				const json = (await response.json()) as unknown;
+				if (!json || typeof json !== "object") continue;
 
 				const normalized: Record<string, string> = {};
-				for (const [key, value] of Object.entries(map)) {
-					if (typeof value !== "string") continue;
-					const slug = key.trim();
-					const text = normalizeShareBody(value);
-					if (!slug || !text) continue;
-					normalized[slug] = text;
+
+				if (Array.isArray(json)) {
+					for (const item of json) {
+						if (!item || typeof item !== "object") continue;
+						const row = item as Record<string, unknown>;
+						const slug = typeof row.slug === "string" ? row.slug.trim() : "";
+						const text = normalizeShareBody(typeof row.title === "string" ? row.title : "");
+						if (!slug || !text) continue;
+						normalized[slug] = text;
+					}
+				} else {
+					for (const [key, value] of Object.entries(json as Record<string, unknown>)) {
+						if (typeof value !== "string") continue;
+						const slug = key.trim();
+						const text = normalizeShareBody(value);
+						if (!slug || !text) continue;
+						normalized[slug] = text;
+					}
 				}
 
 				if (Object.keys(normalized).length > 0) {
@@ -194,26 +207,6 @@ export default function ShareBar({ slug, title, imageUrl, quoteText, visible }: 
 		return sharePath;
 	}
 
-	function getShareDomain() {
-		const shareUrl = getFreshShareCardUrl();
-		if (/^https?:\/\//i.test(shareUrl)) {
-			try {
-				return new URL(shareUrl).host;
-			} catch {
-				return shareUrl;
-			}
-		}
-
-		const origin = getCanonicalOrigin();
-		if (!origin) return shareUrl;
-
-		try {
-			return new URL(origin).host;
-		} catch {
-			return shareUrl;
-		}
-	}
-
 	useEffect(() => {
 		if (quoteText && normalizeShareBody(quoteText)) return;
 
@@ -254,7 +247,7 @@ export default function ShareBar({ slug, title, imageUrl, quoteText, visible }: 
 		}
 
 		return {
-			xText: `Here's the thing...\n${resolvedBody}\n${getShareDomain()}`,
+			xText: `Here's the thing...\n${resolvedBody}\n${getFreshShareCardUrl()}`,
 			socialText: `Here's the thing...\n${resolvedBody}\n${getFreshShareCardUrl()}`,
 		};
 	}
@@ -292,7 +285,7 @@ export default function ShareBar({ slug, title, imageUrl, quoteText, visible }: 
 	async function handleX(e: React.MouseEvent) {
 		e.stopPropagation();
 		const { xText } = await resolveShareTexts();
-		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(xText)}&url=${encodeURIComponent(getFreshShareCardUrl())}`;
+		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(xText)}`;
 		openShareUrl(url);
 	}
 

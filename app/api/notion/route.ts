@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 // Initialize Notion Client
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
-const NOTION_TIMEOUT_MS = 8000;
+const NOTION_TIMEOUT_MS = 20000;
 const CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidate=600";
 
 export const revalidate = 300;
@@ -96,10 +96,18 @@ export async function GET() {
 				query.start_cursor = cursor;
 			}
 
-			const response = await withTimeout(
-				notion.databases.query(query),
-				NOTION_TIMEOUT_MS
-			);
+			let response;
+			try {
+				response = await withTimeout(
+					notion.databases.query(query),
+					NOTION_TIMEOUT_MS
+				);
+			} catch {
+				if (pages.length > 0) {
+					break;
+				}
+				throw new Error("Notion query failed");
+			}
 
 			const currentPage = response.results
 				.filter((page) => "properties" in page)
