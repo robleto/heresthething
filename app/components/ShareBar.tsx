@@ -100,10 +100,15 @@ function normalizeShareBody(value?: string) {
 }
 
 function stripIntroPrefix(value: string) {
-	return value
+	let normalized = value
 		.replace(/^here'?s the thing\.{0,3}\s*/i, "")
-		.replace(/^[-:–—]+\s*/, "")
-		.trim();
+		.trimStart();
+
+	while (normalized.startsWith("-") || normalized.startsWith(":") || normalized.startsWith("–") || normalized.startsWith("—")) {
+		normalized = normalized.slice(1).trimStart();
+	}
+
+	return normalized.trim();
 }
 
 async function loadQuoteMap(): Promise<Record<string, string>> {
