@@ -10,6 +10,8 @@ interface ShareBarProps {
 	visible: boolean;
 }
 
+let quoteMapPromise: Promise<Record<string, string>> | null = null;
+
 function humanizeSlug(value: string) {
 	return value
 		.split(/[-_]+/)
@@ -104,6 +106,48 @@ function stripIntroPrefix(value: string) {
 		.trim();
 }
 
+async function loadQuoteMap(): Promise<Record<string, string>> {
+	if (quoteMapPromise) {
+		return quoteMapPromise;
+	}
+
+	quoteMapPromise = (async () => {
+		const candidates = [
+			"/data/card-text.json",
+			"https://raw.githubusercontent.com/robleto/heresthething/main/public/data/card-text.json",
+		];
+
+		for (const url of candidates) {
+			try {
+				const response = await fetch(url, { cache: "no-store" });
+				if (!response.ok) continue;
+
+				const map = (await response.json()) as Record<string, unknown>;
+				if (!map || typeof map !== "object" || Array.isArray(map)) continue;
+
+				const normalized: Record<string, string> = {};
+				for (const [key, value] of Object.entries(map)) {
+					if (typeof value !== "string") continue;
+					const slug = key.trim();
+					const text = normalizeShareBody(value);
+					if (!slug || !text) continue;
+					normalized[slug] = text;
+				}
+
+				if (Object.keys(normalized).length > 0) {
+					return normalized;
+				}
+			} catch {
+				continue;
+			}
+		}
+
+		return {};
+	})();
+
+	return quoteMapPromise;
+}
+
 export default function ShareBar({ slug, title, imageUrl, quoteText, visible }: ShareBarProps) {
 	const [copied, setCopied] = useState(false);
 	const [fallbackQuoteText, setFallbackQuoteText] = useState<string | undefined>(undefined);
@@ -171,30 +215,11 @@ export default function ShareBar({ slug, title, imageUrl, quoteText, visible }: 
 		let isCancelled = false;
 
 		async function loadFallbackQuote() {
-			const candidates = [
-				"/data/card-text.json",
-				"https://raw.githubusercontent.com/robleto/heresthething/main/public/data/card-text.json",
-			];
+			const map = await loadQuoteMap();
+			const normalized = normalizeShareBody(map[slug]);
 
-			for (const url of candidates) {
-				try {
-					const response = await fetch(url, { cache: "no-store" });
-					if (!response.ok) continue;
-
-					const map = (await response.json()) as Record<string, unknown>;
-					const value = map?.[slug];
-					const normalized = normalizeShareBody(typeof value === "string" ? value : "");
-					if (!normalized) continue;
-
-					if (!isCancelled) {
-						setFallbackQuoteText(normalized);
-					}
-
-					return;
-				} catch {
-					continue;
-				}
-			}
+			if (!normalized || isCancelled) return;
+			setFallbackQuoteText(normalized);
 		}
 
 		void loadFallbackQuote();
@@ -210,8 +235,24 @@ export default function ShareBar({ slug, title, imageUrl, quoteText, visible }: 
 		normalizeShareBody(formatShareTitle(title, slug)) ||
 		"";
 	const bodyCopy = stripIntroPrefix(bodyCopyRaw) || formatShareTitle(title, slug);
-	const xShareText = `Here's the thing...\n${bodyCopy}\n${getShareDomain()}`;
-	const socialShareText = `Here's the thing...\n${bodyCopy}\n${getFreshShareCardUrl()}`;
+
+	async function resolveShareTexts() {
+		let resolvedBody = bodyCopy;
+
+		if (!quoteText && !fallbackQuoteText) {
+			const map = await loadQuoteMap();
+			const fromMap = normalizeShareBody(map[slug]);
+			if (fromMap) {
+				resolvedBody = stripIntroPrefix(fromMap) || resolvedBody;
+				setFallbackQuoteText(fromMap);
+			}
+		}
+
+		return {
+			xText: `Here's the thing...\n${resolvedBody}\n${getShareDomain()}`,
+			socialText: `Here's the thing...\n${resolvedBody}\n${getFreshShareCardUrl()}`,
+		};
+	}
 
 	// Prevent card-expand click from firing when interacting with share buttons
 	function stop(e: React.MouseEvent) {
@@ -229,27 +270,31 @@ export default function ShareBar({ slug, title, imageUrl, quoteText, visible }: 
 		}
 	}
 
-	function handlePinterest(e: React.MouseEvent) {
+	async function handlePinterest(e: React.MouseEvent) {
 		e.stopPropagation();
-		const url = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(getCardUrl())}&media=${encodeURIComponent(imageUrl)}&description=${encodeURIComponent(socialShareText)}`;
+		const { socialText } = await resolveShareTexts();
+		const url = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(getCardUrl())}&media=${encodeURIComponent(imageUrl)}&description=${encodeURIComponent(socialText)}`;
 		openShareUrl(url);
 	}
 
-	function handleThreads(e: React.MouseEvent) {
+	async function handleThreads(e: React.MouseEvent) {
 		e.stopPropagation();
-		const url = `https://www.threads.net/intent/post?text=${encodeURIComponent(socialShareText)}`;
+		const { socialText } = await resolveShareTexts();
+		const url = `https://www.threads.net/intent/post?text=${encodeURIComponent(socialText)}`;
 		openShareUrl(url);
 	}
 
-	function handleX(e: React.MouseEvent) {
+	async function handleX(e: React.MouseEvent) {
 		e.stopPropagation();
-		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(xShareText)}&url=${encodeURIComponent(getFreshShareCardUrl())}`;
+		const { xText } = await resolveShareTexts();
+		const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(xText)}&url=${encodeURIComponent(getFreshShareCardUrl())}`;
 		openShareUrl(url);
 	}
 
-	function handleBluesky(e: React.MouseEvent) {
+	async function handleBluesky(e: React.MouseEvent) {
 		e.stopPropagation();
-		const url = `https://bsky.app/intent/compose?text=${encodeURIComponent(socialShareText)}`;
+		const { socialText } = await resolveShareTexts();
+		const url = `https://bsky.app/intent/compose?text=${encodeURIComponent(socialText)}`;
 		openShareUrl(url);
 	}
 
