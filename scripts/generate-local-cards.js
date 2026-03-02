@@ -2,9 +2,48 @@ const fs = require("fs");
 const path = require("path");
 const { Client } = require("@notionhq/client");
 
+// Load .env files manually (no dotenv dependency needed)
+function loadEnvFile(filePath) {
+	if (!fs.existsSync(filePath)) return;
+	const lines = fs.readFileSync(filePath, "utf8").split("\n");
+	for (const line of lines) {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith("#")) continue;
+		const eq = trimmed.indexOf("=");
+		if (eq < 1) continue;
+		const key = trimmed.slice(0, eq).trim();
+		let val = trimmed.slice(eq + 1).trim();
+		// Strip surrounding quotes
+		if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+			val = val.slice(1, -1);
+		}
+		// Don't override vars already set in the environment
+		if (!process.env[key]) process.env[key] = val;
+	}
+}
+
+const repoRootForEnv = path.resolve(__dirname, "..");
+loadEnvFile(path.join(repoRootForEnv, ".env.local"));
+loadEnvFile(path.join(repoRootForEnv, ".env"));
+
+// Typographic characters that sometimes come through garbled from Notion or OCR
+const CHAR_FIXES = [
+	[/Ñ/g, "—"],     // em dash stored as Ñ (encoding artifact)
+	[/\u00d1/g, "—"], // same, explicit codepoint
+	[/\u2019/g, "'"], // right single quotation mark → apostrophe
+	[/\u201c/g, '"'], // left double quotation mark
+	[/\u201d/g, '"'], // right double quotation mark
+	[/\u2013/g, "-"], // en dash → hyphen (in body copy context)
+	[/\u00e2\u0080\u0094/g, "—"], // UTF-8 mojibake for em dash
+];
+
 function normalizeQuote(value) {
 	if (typeof value !== "string") return "";
-	return value.replace(/\s+/g, " ").trim();
+	let s = value.replace(/\s+/g, " ").trim();
+	for (const [pattern, replacement] of CHAR_FIXES) {
+		s = s.replace(pattern, replacement);
+	}
+	return s;
 }
 
 function listPngBasenames(imagesDir) {
@@ -104,7 +143,7 @@ async function fetchNotionQuoteMap() {
 			if (!page || typeof page !== "object" || !("properties" in page)) continue;
 			const properties = page.properties;
 			const slug = extractNotionSlug(properties);
-			const text = extractNotionAdviceText(properties);
+			const text = normalizeQuote(extractNotionAdviceText(properties));
 			if (!slug || !text) continue;
 			map[slug] = text;
 		}
@@ -137,17 +176,30 @@ async function main() {
 		console.warn("⚠️ Notion copy fetch failed, falling back to card-text map");
 	}
 
-	const payload = slugs.map((slug) => ({
-		id: slug,
-		slug,
-		title: slug,
-		imageUrl: `/img/${slug}.png`,
-		quoteText: notionQuoteMap[slug] || fallbackQuoteMap[slug] || undefined,
-	}));
+	let notionHits = 0;
+	let fallbackHits = 0;
+	let missing = 0;
+
+	const payload = slugs.map((slug) => {
+		let quoteText;
+		if (notionQuoteMap[slug]) {
+			quoteText = notionQuoteMap[slug];
+			notionHits++;
+		} else if (fallbackQuoteMap[slug]) {
+			quoteText = fallbackQuoteMap[slug];
+			fallbackHits++;
+			console.warn(`⚠️  Notion miss — using fallback for: ${slug}`);
+		} else {
+			missing++;
+			console.warn(`❌ No quote found for: ${slug}`);
+		}
+		return { id: slug, slug, title: slug, imageUrl: `/img/${slug}.png`, quoteText };
+	});
 
 	ensureDir(outDir);
 	fs.writeFileSync(outFile, JSON.stringify(payload, null, 2) + "\n", "utf8");
-	console.log(`✅ Wrote ${payload.length} local cards to ${path.relative(repoRoot, outFile)}`);
+	console.log(`\n✅ Wrote ${payload.length} cards → Notion: ${notionHits}, fallback: ${fallbackHits}, missing: ${missing}`);
+	console.log(`   Output: ${path.relative(repoRoot, outFile)}`);
 }
 
 main().catch((error) => {
