@@ -50,7 +50,7 @@ function readTextFromProperty(
 }
 
 function extractTitle(properties: NotionPageProperties): string {
-	const fromAdviceText = readTextFromProperty(properties, "Advice Text", "title");
+	const fromAdviceText = readTextFromProperty(properties, "Advice Text", "rich_text");
 	const fromName = readTextFromProperty(properties, "Name", "title");
 	const fromTitle = readTextFromProperty(properties, "Title", "title");
 	return (fromAdviceText || fromName || fromTitle || "Untitled").trim();
@@ -78,23 +78,43 @@ export async function GET() {
 			);
 		}
 
-		const response = await withTimeout(
-			notion.databases.query({
+		let hasMore = true;
+		let cursor: string | undefined;
+		const pages: Array<{ id: string; title: string; slug: string }> = [];
+
+		while (hasMore) {
+			const query: {
+				database_id: string;
+				page_size: number;
+				start_cursor?: string;
+			} = {
 				database_id: databaseId,
 				page_size: 100,
-			}),
-			NOTION_TIMEOUT_MS
-		);
+			};
 
-		const pages = response.results
-			.filter((page) => "properties" in page)
-			.map((page) => {
-				const properties = page.properties as NotionPageProperties;
-				const title = extractTitle(properties);
-				const slug = extractSlug(properties);
-				return { id: page.id, title, slug };
-			})
-			.filter((item) => Boolean(item.slug));
+			if (cursor) {
+				query.start_cursor = cursor;
+			}
+
+			const response = await withTimeout(
+				notion.databases.query(query),
+				NOTION_TIMEOUT_MS
+			);
+
+			const currentPage = response.results
+				.filter((page) => "properties" in page)
+				.map((page) => {
+					const properties = page.properties as NotionPageProperties;
+					const title = extractTitle(properties);
+					const slug = extractSlug(properties);
+					return { id: page.id, title, slug };
+				})
+				.filter((item) => Boolean(item.slug));
+
+			pages.push(...currentPage);
+			hasMore = response.has_more;
+			cursor = response.next_cursor ?? undefined;
+		}
 
 		return NextResponse.json(pages, {
 			headers: {
