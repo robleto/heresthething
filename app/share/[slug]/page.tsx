@@ -31,7 +31,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: SharePageProps): Promise<Metadata> {
-	const imageVersion = "v3";
+	const imageVersion = "v4";
 	const { slug } = await params;
 	const card = await getCardBySlug(slug);
 
