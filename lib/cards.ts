@@ -216,39 +216,52 @@ async function loadJsonObjectMap(filePath: string): Promise<Record<string, strin
 		return map;
 	}
 
-	function resolvePublicMapUrl(fromFilePath: string): string | null {
+	function resolvePublicMapUrls(fromFilePath: string): string[] {
 		const fileName = path.basename(fromFilePath);
 		const siteUrl =
 			process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
 			process.env.URL?.trim() ||
 			process.env.DEPLOY_PRIME_URL?.trim() ||
 			process.env.DEPLOY_URL?.trim();
-		if (!siteUrl) return null;
-		return `${siteUrl.replace(/\/$/, "")}/data/${fileName}`;
+
+		const urls: string[] = [];
+
+		if (siteUrl) {
+			urls.push(`${siteUrl.replace(/\/$/, "")}/data/${fileName}`);
+		}
+
+		urls.push(
+			`https://raw.githubusercontent.com/robleto/heresthething/main/public/data/${fileName}`
+		);
+
+		return urls;
 	}
 
 	try {
 		const raw = await fs.readFile(filePath, "utf8");
 		return parseObjectMap(raw);
 	} catch {
-		const publicUrl = resolvePublicMapUrl(filePath);
-		if (!publicUrl) return {};
+		const candidateUrls = resolvePublicMapUrls(filePath);
 
-		try {
-			const response = await withTimeout(
-				fetch(publicUrl, { cache: "no-store" }),
-				MANIFEST_TIMEOUT_MS
-			);
+		for (const candidateUrl of candidateUrls) {
+			try {
+				const response = await withTimeout(
+					fetch(candidateUrl, { cache: "no-store" }),
+					MANIFEST_TIMEOUT_MS
+				);
 
-			if (!response.ok) {
-				return {};
+				if (!response.ok) {
+					continue;
+				}
+
+				const raw = await response.text();
+				return parseObjectMap(raw);
+			} catch {
+				continue;
 			}
-
-			const raw = await response.text();
-			return parseObjectMap(raw);
-		} catch {
-			return {};
 		}
+
+		return {};
 	}
 }
 
