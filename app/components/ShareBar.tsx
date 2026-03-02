@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface ShareBarProps {
 	slug: string;
@@ -106,6 +106,7 @@ function stripIntroPrefix(value: string) {
 
 export default function ShareBar({ slug, title, imageUrl, quoteText, visible }: ShareBarProps) {
 	const [copied, setCopied] = useState(false);
+	const [fallbackQuoteText, setFallbackQuoteText] = useState<string | undefined>(undefined);
 
 	function getCardPath() {
 		return `/card/${slug}`;
@@ -164,8 +165,50 @@ export default function ShareBar({ slug, title, imageUrl, quoteText, visible }: 
 		}
 	}
 
+	useEffect(() => {
+		if (quoteText && normalizeShareBody(quoteText)) return;
+
+		let isCancelled = false;
+
+		async function loadFallbackQuote() {
+			const candidates = [
+				"/data/card-text.json",
+				"https://raw.githubusercontent.com/robleto/heresthething/main/public/data/card-text.json",
+			];
+
+			for (const url of candidates) {
+				try {
+					const response = await fetch(url, { cache: "no-store" });
+					if (!response.ok) continue;
+
+					const map = (await response.json()) as Record<string, unknown>;
+					const value = map?.[slug];
+					const normalized = normalizeShareBody(typeof value === "string" ? value : "");
+					if (!normalized) continue;
+
+					if (!isCancelled) {
+						setFallbackQuoteText(normalized);
+					}
+
+					return;
+				} catch {
+					continue;
+				}
+			}
+		}
+
+		void loadFallbackQuote();
+
+		return () => {
+			isCancelled = true;
+		};
+	}, [quoteText, slug]);
+
 	const bodyCopyRaw =
-		normalizeShareBody(quoteText) || normalizeShareBody(formatShareTitle(title, slug)) || "";
+		normalizeShareBody(quoteText) ||
+		normalizeShareBody(fallbackQuoteText) ||
+		normalizeShareBody(formatShareTitle(title, slug)) ||
+		"";
 	const bodyCopy = stripIntroPrefix(bodyCopyRaw) || formatShareTitle(title, slug);
 	const xShareText = `Here's the thing...\n${bodyCopy}\n${getShareDomain()}`;
 	const socialShareText = `Here's the thing...\n${bodyCopy}\n${getFreshShareCardUrl()}`;
