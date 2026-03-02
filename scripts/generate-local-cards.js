@@ -60,29 +60,6 @@ function ensureDir(dirPath) {
 	fs.mkdirSync(dirPath, { recursive: true });
 }
 
-function loadQuoteMap(filePath) {
-	if (!fs.existsSync(filePath)) return {};
-
-	const raw = fs.readFileSync(filePath, "utf8");
-	const parsed = JSON.parse(raw);
-	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-		return {};
-	}
-
-	const quoteMap = {};
-	for (const [slug, quote] of Object.entries(parsed)) {
-		const normalizedSlug = typeof slug === "string" ? slug.trim() : "";
-		if (!normalizedSlug) continue;
-
-		const normalizedQuote = normalizeQuote(quote);
-		if (!normalizedQuote) continue;
-
-		quoteMap[normalizedSlug] = normalizedQuote;
-	}
-
-	return quoteMap;
-}
-
 function readTextFromProperty(properties, propertyName, expectedType) {
 	const rawProperty = properties[propertyName];
 	if (!rawProperty || typeof rawProperty !== "object") return null;
@@ -160,24 +137,21 @@ async function main() {
 	const imagesDir = path.join(repoRoot, "public", "img");
 	const outDir = path.join(repoRoot, "public", "data");
 	const outFile = path.join(outDir, "local-cards.json");
-	const quoteMapFile = path.join(outDir, "card-text.json");
 
 	if (!fs.existsSync(imagesDir)) {
 		throw new Error(`Images dir not found: ${imagesDir}`);
 	}
 
 	const slugs = listPngBasenames(imagesDir);
-	const fallbackQuoteMap = loadQuoteMap(quoteMapFile);
 	let notionQuoteMap = {};
 
 	try {
 		notionQuoteMap = await fetchNotionQuoteMap();
 	} catch (error) {
-		console.warn("⚠️ Notion copy fetch failed, falling back to card-text map");
+		console.warn("⚠️ Notion copy fetch failed — quoteText will be empty for missed cards");
 	}
 
 	let notionHits = 0;
-	let fallbackHits = 0;
 	let missing = 0;
 
 	const payload = slugs.map((slug) => {
@@ -185,20 +159,16 @@ async function main() {
 		if (notionQuoteMap[slug]) {
 			quoteText = notionQuoteMap[slug];
 			notionHits++;
-		} else if (fallbackQuoteMap[slug]) {
-			quoteText = fallbackQuoteMap[slug];
-			fallbackHits++;
-			console.warn(`⚠️  Notion miss — using fallback for: ${slug}`);
 		} else {
 			missing++;
-			console.warn(`❌ No quote found for: ${slug}`);
+			console.warn(`❌ No Notion quote found for: ${slug}`);
 		}
 		return { id: slug, slug, title: slug, imageUrl: `/img/${slug}.png`, quoteText };
 	});
 
 	ensureDir(outDir);
 	fs.writeFileSync(outFile, JSON.stringify(payload, null, 2) + "\n", "utf8");
-	console.log(`\n✅ Wrote ${payload.length} cards → Notion: ${notionHits}, fallback: ${fallbackHits}, missing: ${missing}`);
+	console.log(`\n✅ Wrote ${payload.length} cards → Notion: ${notionHits}, missing: ${missing}`);
 	console.log(`   Output: ${path.relative(repoRoot, outFile)}`);
 }
 

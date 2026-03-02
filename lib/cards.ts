@@ -247,8 +247,7 @@ async function loadLocalManifestQuoteMap(): Promise<Record<string, string>> {
 
 export async function getCards(): Promise<AdviceCard[]> {
 	let cards: AdviceCard[] = [];
-	// Use local-cards.json (built from Notion at generate time) as quote source —
-	// NOT card-text.json which contains OCR-scraped garbage.
+	// Use local-cards.json (built from Notion at generate time) as quote source.
 	const [localQuoteMap, localColorMap] = await Promise.all([
 		loadLocalManifestQuoteMap(),
 		loadJsonObjectMap(getColorMapPath()),
