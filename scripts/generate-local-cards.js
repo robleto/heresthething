@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { Client } = require("@notionhq/client");
 
 function normalizeQuote(value) {
 	if (typeof value !== "string") return "";
@@ -43,7 +44,79 @@ function loadQuoteMap(filePath) {
 	return quoteMap;
 }
 
-function main() {
+function readTextFromProperty(properties, propertyName, expectedType) {
+	const rawProperty = properties[propertyName];
+	if (!rawProperty || typeof rawProperty !== "object") return null;
+
+	if (rawProperty.type !== expectedType) return null;
+	const rawItems = rawProperty[expectedType];
+	if (!Array.isArray(rawItems) || rawItems.length === 0) return null;
+
+	const plainText = rawItems[0] && rawItems[0].plain_text;
+	if (typeof plainText !== "string") return null;
+
+	return plainText.replace(/\s+/g, " ").trim() || null;
+}
+
+function extractNotionSlug(properties) {
+	return (
+		readTextFromProperty(properties, "slug", "rich_text") ||
+		readTextFromProperty(properties, "Slug", "rich_text") ||
+		readTextFromProperty(properties, "slug", "title") ||
+		readTextFromProperty(properties, "Slug", "title") ||
+		""
+	).trim();
+}
+
+function extractNotionAdviceText(properties) {
+	return (
+		readTextFromProperty(properties, "Advice Text", "rich_text") ||
+		readTextFromProperty(properties, "Name", "title") ||
+		readTextFromProperty(properties, "Title", "title") ||
+		""
+	).trim();
+}
+
+async function fetchNotionQuoteMap() {
+	const databaseId = process.env.NOTION_DATABASE_ID;
+	const apiKey = process.env.NOTION_API_KEY;
+	if (!databaseId || !apiKey) return {};
+
+	const notion = new Client({ auth: apiKey });
+	const map = {};
+
+	let hasMore = true;
+	let cursor;
+
+	while (hasMore) {
+		const query = {
+			database_id: databaseId,
+			page_size: 100,
+		};
+
+		if (cursor) {
+			query.start_cursor = cursor;
+		}
+
+		const response = await notion.databases.query(query);
+
+		for (const page of response.results) {
+			if (!page || typeof page !== "object" || !("properties" in page)) continue;
+			const properties = page.properties;
+			const slug = extractNotionSlug(properties);
+			const text = extractNotionAdviceText(properties);
+			if (!slug || !text) continue;
+			map[slug] = text;
+		}
+
+		hasMore = response.has_more;
+		cursor = response.next_cursor || undefined;
+	}
+
+	return map;
+}
+
+async function main() {
 	const repoRoot = path.resolve(__dirname, "..");
 	const imagesDir = path.join(repoRoot, "public", "img");
 	const outDir = path.join(repoRoot, "public", "data");
@@ -55,14 +128,21 @@ function main() {
 	}
 
 	const slugs = listPngBasenames(imagesDir);
-	const quoteMap = loadQuoteMap(quoteMapFile);
+	const fallbackQuoteMap = loadQuoteMap(quoteMapFile);
+	let notionQuoteMap = {};
+
+	try {
+		notionQuoteMap = await fetchNotionQuoteMap();
+	} catch (error) {
+		console.warn("⚠️ Notion copy fetch failed, falling back to card-text map");
+	}
 
 	const payload = slugs.map((slug) => ({
 		id: slug,
 		slug,
 		title: slug,
 		imageUrl: `/img/${slug}.png`,
-		quoteText: quoteMap[slug] || undefined,
+		quoteText: notionQuoteMap[slug] || fallbackQuoteMap[slug] || undefined,
 	}));
 
 	ensureDir(outDir);
@@ -70,4 +150,7 @@ function main() {
 	console.log(`✅ Wrote ${payload.length} local cards to ${path.relative(repoRoot, outFile)}`);
 }
 
-main();
+main().catch((error) => {
+	console.error("❌ Failed to generate local cards:", error);
+	process.exitCode = 1;
+});
