@@ -218,7 +218,11 @@ async function loadJsonObjectMap(filePath: string): Promise<Record<string, strin
 
 	function resolvePublicMapUrl(fromFilePath: string): string | null {
 		const fileName = path.basename(fromFilePath);
-		const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+		const siteUrl =
+			process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+			process.env.URL?.trim() ||
+			process.env.DEPLOY_PRIME_URL?.trim() ||
+			process.env.DEPLOY_URL?.trim();
 		if (!siteUrl) return null;
 		return `${siteUrl.replace(/\/$/, "")}/data/${fileName}`;
 	}
