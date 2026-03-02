@@ -117,10 +117,11 @@ async function loadQuoteMap(): Promise<Record<string, string>> {
 	}
 
 	quoteMapPromise = (async () => {
+		// local-cards.json is the single source of truth — built from Notion at
+		// generate time. Never fall back to card-text.json (OCR garbage).
 		const candidates = [
-			"/api/notion",
-			"/data/card-text.json",
-			"https://raw.githubusercontent.com/robleto/heresthething/main/public/data/card-text.json",
+			"/data/local-cards.json",
+			"https://raw.githubusercontent.com/robleto/heresthething/main/public/data/local-cards.json",
 		];
 
 		for (const url of candidates) {
@@ -129,27 +130,19 @@ async function loadQuoteMap(): Promise<Record<string, string>> {
 				if (!response.ok) continue;
 
 				const json = (await response.json()) as unknown;
-				if (!json || typeof json !== "object") continue;
+				if (!Array.isArray(json)) continue;
 
 				const normalized: Record<string, string> = {};
-
-				if (Array.isArray(json)) {
-					for (const item of json) {
-						if (!item || typeof item !== "object") continue;
-						const row = item as Record<string, unknown>;
-						const slug = typeof row.slug === "string" ? row.slug.trim() : "";
-						const text = normalizeShareBody(typeof row.title === "string" ? row.title : "");
-						if (!slug || !text) continue;
-						normalized[slug] = text;
-					}
-				} else {
-					for (const [key, value] of Object.entries(json as Record<string, unknown>)) {
-						if (typeof value !== "string") continue;
-						const slug = key.trim();
-						const text = normalizeShareBody(value);
-						if (!slug || !text) continue;
-						normalized[slug] = text;
-					}
+				for (const item of json) {
+					if (!item || typeof item !== "object") continue;
+					const row = item as Record<string, unknown>;
+					const slug = typeof row.slug === "string" ? row.slug.trim() : "";
+					// Use quoteText field (Notion Advice Text) — NOT title (slug-derived)
+					const text = normalizeShareBody(
+						typeof row.quoteText === "string" ? row.quoteText : ""
+					);
+					if (!slug || !text) continue;
+					normalized[slug] = text;
 				}
 
 				if (Object.keys(normalized).length > 0) {

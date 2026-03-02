@@ -1,6 +1,5 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { Client } from "@notionhq/client";
 
 export interface AdviceCard {
 	id: string;
@@ -12,17 +11,9 @@ export interface AdviceCard {
 }
 
 const MANIFEST_TIMEOUT_MS = 6000;
-const NOTION_TIMEOUT_MS = 8000;
-const NOTION_CACHE_TTL_MS = 5 * 60 * 1000;
-
-let notionCopyCache: { expiresAt: number; map: Map<string, Pick<AdviceCard, "title" | "quoteText">> } | null = null;
 
 function getManifestPath() {
 	return path.join(process.cwd(), "public", "data", "local-cards.json");
-}
-
-function getQuoteMapPath() {
-	return path.join(process.cwd(), "public", "data", "card-text.json");
 }
 
 function getColorMapPath() {
@@ -36,114 +27,6 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
 			setTimeout(() => reject(new Error("Manifest request timed out")), timeoutMs);
 		}),
 	]);
-}
-
-function readTextFromProperty(
-	properties: Record<string, unknown>,
-	propertyName: string,
-	expectedType: "title" | "rich_text"
-): string | null {
-	const rawProperty = properties[propertyName];
-	if (!rawProperty || typeof rawProperty !== "object") return null;
-
-	const property = rawProperty as Record<string, unknown>;
-	if (property.type !== expectedType) return null;
-
-	const rawItems = property[expectedType];
-	if (!Array.isArray(rawItems) || rawItems.length === 0) return null;
-
-	const firstItem = rawItems[0];
-	if (!firstItem || typeof firstItem !== "object") return null;
-
-	const plainText = (firstItem as Record<string, unknown>).plain_text;
-	if (typeof plainText !== "string") return null;
-
-	const normalized = plainText.replace(/\s+/g, " ").trim();
-	return normalized || null;
-}
-
-function extractNotionTitle(properties: Record<string, unknown>): string {
-	const fromAdviceText = readTextFromProperty(properties, "Advice Text", "rich_text");
-	const fromName = readTextFromProperty(properties, "Name", "title");
-	const fromTitle = readTextFromProperty(properties, "Title", "title");
-
-	return (fromAdviceText || fromName || fromTitle || "").trim();
-}
-
-function extractNotionSlug(properties: Record<string, unknown>): string {
-	const richTextSlug =
-		readTextFromProperty(properties, "slug", "rich_text") ||
-		readTextFromProperty(properties, "Slug", "rich_text");
-
-	const titleSlug =
-		readTextFromProperty(properties, "slug", "title") ||
-		readTextFromProperty(properties, "Slug", "title");
-
-	return (richTextSlug || titleSlug || "").trim();
-}
-
-async function fetchNotionCopyMap(): Promise<Map<string, Pick<AdviceCard, "title" | "quoteText">>> {
-	const databaseId = process.env.NOTION_DATABASE_ID;
-	const apiKey = process.env.NOTION_API_KEY;
-
-	if (!databaseId || !apiKey) {
-		return new Map();
-	}
-
-	if (notionCopyCache && notionCopyCache.expiresAt > Date.now()) {
-		return notionCopyCache.map;
-	}
-
-	const notion = new Client({ auth: apiKey });
-	const copyBySlug = new Map<string, Pick<AdviceCard, "title" | "quoteText">>();
-	let hasMore = true;
-	let cursor: string | undefined;
-
-	while (hasMore) {
-		const query: {
-			database_id: string;
-			page_size: number;
-			start_cursor?: string;
-		} = {
-			database_id: databaseId,
-			page_size: 100,
-		};
-
-		if (cursor) {
-			query.start_cursor = cursor;
-		}
-
-		const response = await withTimeout(
-			notion.databases.query(query),
-			NOTION_TIMEOUT_MS
-		);
-
-		for (const page of response.results) {
-			if (!("properties" in page)) continue;
-
-			const properties = page.properties as Record<string, unknown>;
-			const slug = extractNotionSlug(properties);
-			if (!slug) continue;
-
-			const title = extractNotionTitle(properties);
-			if (!title) continue;
-
-			copyBySlug.set(slug, {
-				title,
-				quoteText: title,
-			});
-		}
-
-		hasMore = response.has_more;
-		cursor = response.next_cursor ?? undefined;
-	}
-
-	notionCopyCache = {
-		expiresAt: Date.now() + NOTION_CACHE_TTL_MS,
-		map: copyBySlug,
-	};
-
-	return copyBySlug;
 }
 
 function sanitizeSlug(value: unknown): string {
@@ -318,10 +201,56 @@ export async function getLocalCards(): Promise<AdviceCard[]> {
 	return normalizeCards(parsed);
 }
 
+// Build a {slug → quoteText} map from the local manifest (authoritative Notion text)
+async function loadLocalManifestQuoteMap(): Promise<Record<string, string>> {
+	const filePath = getManifestPath();
+	let rawArray: unknown = null;
+
+	try {
+		const raw = await fs.readFile(filePath, "utf8");
+		rawArray = JSON.parse(raw);
+	} catch {
+		// filesystem unavailable (serverless); try public URL
+		const siteUrl =
+			process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+			process.env.URL?.trim() ||
+			process.env.DEPLOY_PRIME_URL?.trim();
+
+		const candidates: string[] = [];
+		if (siteUrl) candidates.push(`${siteUrl.replace(/\/$/, "")}/data/local-cards.json`);
+		candidates.push(
+			"https://raw.githubusercontent.com/robleto/heresthething/main/public/data/local-cards.json"
+		);
+
+		for (const url of candidates) {
+			try {
+				const res = await withTimeout(fetch(url, { cache: "no-store" }), MANIFEST_TIMEOUT_MS);
+				if (!res.ok) continue;
+				rawArray = await res.json();
+				break;
+			} catch {
+				continue;
+			}
+		}
+	}
+
+	if (!Array.isArray(rawArray)) return {};
+
+	const map: Record<string, string> = {};
+	for (const item of rawArray as Record<string, unknown>[]) {
+		const slug = typeof item.slug === "string" ? item.slug.trim() : "";
+		const text = sanitizeQuoteText(item.quoteText);
+		if (slug && text) map[slug] = text;
+	}
+	return map;
+}
+
 export async function getCards(): Promise<AdviceCard[]> {
 	let cards: AdviceCard[] = [];
+	// Use local-cards.json (built from Notion at generate time) as quote source —
+	// NOT card-text.json which contains OCR-scraped garbage.
 	const [localQuoteMap, localColorMap] = await Promise.all([
-		loadJsonObjectMap(getQuoteMapPath()),
+		loadLocalManifestQuoteMap(),
 		loadJsonObjectMap(getColorMapPath()),
 	]);
 
@@ -349,23 +278,7 @@ export async function getCards(): Promise<AdviceCard[]> {
 		}));
 	}
 
-	try {
-		const notionCopyBySlug = await fetchNotionCopyMap();
-		if (notionCopyBySlug.size === 0) return cards;
-
-		return cards.map((card) => {
-			const notionCopy = notionCopyBySlug.get(card.slug);
-			if (!notionCopy) return card;
-
-			return {
-				...card,
-				title: notionCopy.title || card.title,
-				quoteText: notionCopy.quoteText || card.quoteText,
-			};
-		});
-	} catch {
-		return cards;
-	}
+	return cards;
 }
 
 export async function getCardBySlug(slug: string): Promise<AdviceCard | null> {
