@@ -195,9 +195,8 @@ function sanitizeBackgroundColor(value: unknown): string | undefined {
 }
 
 async function loadJsonObjectMap(filePath: string): Promise<Record<string, string>> {
-	try {
-		const raw = await fs.readFile(filePath, "utf8");
-		const parsed = JSON.parse(raw) as unknown;
+	function parseObjectMap(rawJson: string): Record<string, string> {
+		const parsed = JSON.parse(rawJson) as unknown;
 
 		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
 			return {};
@@ -215,8 +214,37 @@ async function loadJsonObjectMap(filePath: string): Promise<Record<string, strin
 		}
 
 		return map;
+	}
+
+	function resolvePublicMapUrl(fromFilePath: string): string | null {
+		const fileName = path.basename(fromFilePath);
+		const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+		if (!siteUrl) return null;
+		return `${siteUrl.replace(/\/$/, "")}/data/${fileName}`;
+	}
+
+	try {
+		const raw = await fs.readFile(filePath, "utf8");
+		return parseObjectMap(raw);
 	} catch {
-		return {};
+		const publicUrl = resolvePublicMapUrl(filePath);
+		if (!publicUrl) return {};
+
+		try {
+			const response = await withTimeout(
+				fetch(publicUrl, { cache: "no-store" }),
+				MANIFEST_TIMEOUT_MS
+			);
+
+			if (!response.ok) {
+				return {};
+			}
+
+			const raw = await response.text();
+			return parseObjectMap(raw);
+		} catch {
+			return {};
+		}
 	}
 }
 
