@@ -129,7 +129,7 @@ async function loadJsonObjectMap(filePath: string): Promise<Record<string, strin
 		for (const candidateUrl of candidateUrls) {
 			try {
 				const response = await withTimeout(
-					fetch(candidateUrl, { cache: "no-store" }),
+					fetch(candidateUrl, { next: { revalidate: 300 } }),
 					MANIFEST_TIMEOUT_MS
 				);
 
@@ -182,7 +182,7 @@ async function fetchR2Cards(): Promise<AdviceCard[]> {
 	if (!manifestUrl) return [];
 
 	const response = await withTimeout(
-		fetch(manifestUrl, { cache: "no-store" }),
+		fetch(manifestUrl, { next: { revalidate: 300 } }),
 		MANIFEST_TIMEOUT_MS
 	);
 
@@ -224,7 +224,10 @@ async function loadLocalManifestQuoteMap(): Promise<Record<string, string>> {
 
 		for (const url of candidates) {
 			try {
-				const res = await withTimeout(fetch(url, { cache: "no-store" }), MANIFEST_TIMEOUT_MS);
+				const res = await withTimeout(
+					fetch(url, { next: { revalidate: 300 } }),
+					MANIFEST_TIMEOUT_MS
+				);
 				if (!res.ok) continue;
 				rawArray = await res.json();
 				break;

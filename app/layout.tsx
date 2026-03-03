@@ -52,8 +52,28 @@ export default function RootLayout({
 }: {
 	children: React.ReactNode;
 }) {
+	const imageBaseUrl =
+		process.env.NEXT_PUBLIC_R2_IMAGE_BASE_URL || process.env.R2_IMAGE_BASE_URL;
+
+	let imageOrigin: string | null = null;
+	if (imageBaseUrl) {
+		try {
+			imageOrigin = new URL(imageBaseUrl).origin;
+		} catch {
+			imageOrigin = null;
+		}
+	}
+
 	return (
 		<html lang="en">
+			<head>
+				{imageOrigin ? (
+					<>
+						<link rel="preconnect" href={imageOrigin} crossOrigin="" />
+						<link rel="dns-prefetch" href={imageOrigin} />
+					</>
+				) : null}
+			</head>
 			<body className="bg-gray-200 text-black flex flex-col min-h-screen">
 				{children}
 			</body>

@@ -8,6 +8,33 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/img/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/_next/image",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/data/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=3600, stale-while-revalidate=86400",
+          },
+        ],
+      },
+      {
         source: "/:path*",
         headers: [
           {
@@ -43,6 +70,7 @@ const nextConfig: NextConfig = {
         hostname: "**",
       },
     ],
+    formats: ["image/avif", "image/webp"],
   },
 };
 
