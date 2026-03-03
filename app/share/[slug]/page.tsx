@@ -64,8 +64,8 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
 	const sharePath = `/share/${card.slug}`;
 	const cardPath = `/card/${card.slug}`;
 	const fallbackImagePath = `/share/${card.slug}/twitter-image?${imageVersion}`;
+	const socialImage = toAbsoluteUrl(fallbackImagePath);
 	const primaryImage = toAbsoluteUrl(card.imageUrl);
-	const fallbackImage = toAbsoluteUrl(fallbackImagePath);
 
 	return {
 		title,
@@ -80,13 +80,13 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
 			url: sharePath,
 			images: [
 				{
-					url: primaryImage,
+					url: socialImage,
+					width: 1200,
+					height: 630,
 					alt: title,
 				},
 				{
-					url: fallbackImage,
-					width: 1200,
-					height: 630,
+					url: primaryImage,
 					alt: title,
 				},
 			],
@@ -95,7 +95,7 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
 			card: "summary_large_image",
 			title,
 			description,
-			images: [primaryImage, fallbackImage],
+			images: [socialImage],
 		},
 	};
 }
