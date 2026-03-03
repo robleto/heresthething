@@ -4,7 +4,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
-import ShareRedirect from "./ShareRedirect";
 import { getCardBySlug, getCards } from "../../../lib/cards";
 
 interface SharePageProps {
@@ -81,12 +80,15 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
 			images: [
 				{
 					url: socialImage,
+					secureUrl: socialImage,
+					type: "image/png",
 					width: 1200,
 					height: 630,
 					alt: title,
 				},
 				{
 					url: primaryImage,
+					secureUrl: primaryImage,
 					alt: title,
 				},
 			],
@@ -112,7 +114,6 @@ export default async function SharePage({ params }: SharePageProps) {
 
 	return (
 		<div className="flex flex-col min-h-screen">
-			<ShareRedirect />
 			<Header />
 			<main className="flex flex-col items-center justify-center min-h-screen px-6 py-10 bg-gray-200 gap-6">
 				<div className="w-full max-w-xl aspect-square relative rounded-xl overflow-hidden shadow-sm bg-gray-300">
