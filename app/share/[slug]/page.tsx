@@ -11,6 +11,8 @@ interface SharePageProps {
 	params: Promise<{ slug: string }>;
 }
 
+const SITE_ORIGIN = "https://heresthething.life";
+
 function formatCardTitle(title: string, slug: string) {
 	const preferred = title && title !== "Untitled" ? title : slug;
 	const looksLikeSlug = /^[a-z0-9]+(?:[-_][a-z0-9]+)+$/i.test(preferred);
@@ -23,6 +25,17 @@ function formatCardTitle(title: string, slug: string) {
 	}
 
 	return preferred;
+}
+
+function toAbsoluteUrl(value: string) {
+	if (/^https?:\/\//i.test(value)) return value;
+	return `${SITE_ORIGIN}${value.startsWith("/") ? value : `/${value}`}`;
+}
+
+function getShareText(quoteText: string | undefined, title: string, slug: string) {
+	const quote = typeof quoteText === "string" ? quoteText.trim() : "";
+	if (quote) return quote;
+	return formatCardTitle(title, slug);
 }
 
 export async function generateStaticParams() {
@@ -45,11 +58,14 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
 		};
 	}
 
-	const title = formatCardTitle(card.title, card.slug);
-	const description = `${title} — from Here's the Thing.`;
+	const shareText = getShareText(card.quoteText, card.title, card.slug);
+	const title = shareText;
+	const description = `${shareText} — from Here's the Thing.`;
 	const sharePath = `/share/${card.slug}`;
 	const cardPath = `/card/${card.slug}`;
-	const imagePath = `/share/${card.slug}/twitter-image?${imageVersion}`;
+	const fallbackImagePath = `/share/${card.slug}/twitter-image?${imageVersion}`;
+	const primaryImage = toAbsoluteUrl(card.imageUrl);
+	const fallbackImage = toAbsoluteUrl(fallbackImagePath);
 
 	return {
 		title,
@@ -64,7 +80,11 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
 			url: sharePath,
 			images: [
 				{
-					url: imagePath,
+					url: primaryImage,
+					alt: title,
+				},
+				{
+					url: fallbackImage,
 					width: 1200,
 					height: 630,
 					alt: title,
@@ -75,7 +95,7 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
 			card: "summary_large_image",
 			title,
 			description,
-			images: [imagePath],
+			images: [primaryImage, fallbackImage],
 		},
 	};
 }
